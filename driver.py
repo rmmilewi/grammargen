@@ -2,7 +2,6 @@ import argparse
 import importlib
 import re
 from lark import Lark, UnexpectedInput
-from lark.reconstruct import Reconstructor
 
 def load_grammar(grammar_path: str) -> str:
     with open(grammar_path, 'r', encoding='utf-8') as file:
@@ -77,7 +76,6 @@ def main():
     except Exception as e:
         print("An error occurred while building the parser...")
         raise e
-    #reconstructor = Reconstructor(lark_parser,term_subs=None)
 
     transformer = None
     if args.transformer:
@@ -94,24 +92,23 @@ def main():
             print("\"\"\"",stringAndTarget[0],"\"\"\"")
             try:
                 tree = lark_parser.parse(stringAndTarget[0])
-                #print("RECONSTRUCTION:",reconstructor.reconstruct(tree))
+                print(tree.pretty())
                 countOfStringsParsedSuccessfully += 1
             except Exception as e:
                 print("Error encountered during parsing...")
                 print(e)
 
-                if transformer != None:
-                    try:
-                        output = transformer.transform(tree)
-                        if output == stringAndTarget[1]:
-                            print("Transformer output '{output}' matches target '{target}'".format(output=output,target=stringAndTarget[1]))
-                            countOfStringsTransformedSuccessfully +=1
-                        else:
-                            print("Transformer output '{output}' does NOT match target '{target}'".format(output=output,target=stringAndTarget[1]))
-
-                    except Exception as e:
-                        print("Error encountered during transformation of parse tree...")
-                        print(e)
+            if transformer != None:
+                try:
+                    output = transformer.transform(tree)
+                    if output == stringAndTarget[1]:
+                        print("Transformer output '{output}' matches target '{target}'".format(output=output,target=stringAndTarget[1]))
+                        countOfStringsTransformedSuccessfully +=1
+                    else:
+                        print("Transformer output '{output}' does NOT match target '{target}'".format(output=output,target=stringAndTarget[1]))
+                except Exception as e:
+                    print("Error encountered during transformation of parse tree...")
+                    print(e)
             print("-----------------------")
         print("Total number of strings correctly parsed: {successes}/{total}".format(successes=countOfStringsParsedSuccessfully,total=len(stringsAndTargetsToParse)))
         if transformer != None:
