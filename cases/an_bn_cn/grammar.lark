@@ -1,0 +1,15 @@
+// Generate a grammar for Lark using the Earley parser that can parse strings of the form a^n b^n c^n (e.g., aaabbbccc).
+// The parser does not need to determine whether the string is actually valid (like it can parse aabbbcccc).
+// The transformer handles the checking of the string.
+
+start: a_rule b_rule c_rule
+a_rule: A_SYMBOL+
+b_rule: B_SYMBOL+
+c_rule: C_SYMBOL+
+
+A_SYMBOL: "a"
+B_SYMBOL: "b"
+C_SYMBOL: "c"
+
+%import common.WS
+%ignore WS

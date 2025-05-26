@@ -1,0 +1,9 @@
+// Generate a grammar for Lark using the Earley parser that can parse valid Morse code messages using the following rules:
+//- A Morse code character is made up of one or more dots (`.`) and dashes (`-`), with no spaces in between.
+//- Each Morse code character is separated from the next by optional whitespace (` `).
+//- Words in Morse code are separated by a slash (`/`) surrounded by optional whitespace (e.g., `" / "`).
+//- Only letters A–Z and digits 0–9 are allowed.
+//- Do not define the meaning of each Morse sequence; just ensure the grammar accepts sequences that could represent valid Morse code messages.
+//- Comments in the grammar are allowed to clarify intent.
+// Provide the grammar such that it accepts an input like: .... . .-.. .-.. --- / .-- --- .-. .-.. -..
+// which corresponds to "HELLO WORLD".
