@@ -42,3 +42,69 @@ class LarkTransformer(Transformer):
     8: ---..
     9: ----.
     """
+    
+    # Morse code translation dictionary
+    MORSE_TO_CHAR = {
+        '.-': 'A',
+        '-...': 'B',
+        '-.-.': 'C',
+        '-..': 'D',
+        '.': 'E',
+        '..-.': 'F',
+        '--.': 'G',
+        '....': 'H',
+        '..': 'I',
+        '.---': 'J',
+        '-.-': 'K',
+        '.-..': 'L',
+        '--': 'M',
+        '-.': 'N',
+        '---': 'O',
+        '.--.': 'P',
+        '--.-': 'Q',
+        '.-.': 'R',
+        '...': 'S',
+        '-': 'T',
+        '..-': 'U',
+        '...-': 'V',
+        '.--': 'W',
+        '-..-': 'X',
+        '-.--': 'Y',
+        '--..': 'Z',
+        '-----': '0',
+        '.----': '1',
+        '..---': '2',
+        '...--': '3',
+        '....-': '4',
+        '.....': '5',
+        '-....': '6',
+        '--...': '7',
+        '---..': '8',
+        '----.': '9'
+    }
+    
+    def start(self, children):
+        # If there's a single word, return it
+        if len(children) == 1:
+            return children[0]
+        
+        # If there are multiple items, every other item is a word
+        # (with word separators in between)
+        result = []
+        for i, child in enumerate(children):
+            if i % 2 == 0:  # It's a word
+                result.append(child)
+        
+        # Join all words with spaces
+        return ' '.join(result)
+    
+    def word(self, children):
+        # Join all characters in a word
+        return ''.join(children)
+    
+    def morse_char(self, children):
+        # Get the Morse code sequence
+        morse_code = children[0].value
+        
+        # Convert to the corresponding character
+        return self.MORSE_TO_CHAR.get(morse_code, '?')  # Return '?' for unknown codes

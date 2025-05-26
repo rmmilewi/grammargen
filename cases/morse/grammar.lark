@@ -1,9 +1,26 @@
-// Generate a grammar for Lark using the Earley parser that can parse valid Morse code messages using the following rules:
-//- A Morse code character is made up of one or more dots (`.`) and dashes (`-`), with no spaces in between.
-//- Each Morse code character is separated from the next by optional whitespace (` `).
-//- Words in Morse code are separated by a slash (`/`) surrounded by optional whitespace (e.g., `" / "`).
-//- Only letters A–Z and digits 0–9 are allowed.
-//- Do not define the meaning of each Morse sequence; just ensure the grammar accepts sequences that could represent valid Morse code messages.
-//- Comments in the grammar are allowed to clarify intent.
-// Provide the grammar such that it accepts an input like: .... . .-.. .-.. --- / .-- --- .-. .-.. -..
-// which corresponds to "HELLO WORLD".
+// Grammar for Morse code using the Earley parser
+// This grammar accepts valid Morse code messages with the following rules:
+// - A Morse code character is made up of one or more dots (.) and dashes (-)
+// - Each Morse code character is separated from the next by optional whitespace
+// - Words in Morse code are separated by a slash (/) surrounded by optional whitespace
+// - Only letters A-Z and digits 0-9 are allowed (enforced by the transformer)
+
+// The main structure of a Morse code message: one or more words separated by slashes
+start: word
+     | word (WORD_SEPARATOR word)+
+
+// A word consists of one or more Morse code characters
+word: morse_char+
+
+// A Morse code character is a sequence of dots and dashes
+morse_char: MORSE_SEQUENCE
+
+// Define a Morse sequence as a continuous string of dots and dashes
+MORSE_SEQUENCE: /[.-]+/
+
+// Word separator is a slash
+WORD_SEPARATOR: "/"
+
+// Ignore whitespace between characters and around word separators
+%import common.WS
+%ignore WS
