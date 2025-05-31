@@ -1,6 +1,6 @@
 Generate a grammar for Lark (https://github.com/lark-parser/lark) using the Earley parser that can parse valid Magic: The Gathering rules texts.
 
-For this task you should add the grammar in cases/morse/grammar.lark.
+For this task you should add the grammar in cases/mtg/grammar.lark.
 
 To check your answer, you can call the driver from the top-level directory (grammargen/) using...
 
