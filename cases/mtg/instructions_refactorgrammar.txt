@@ -24,12 +24,19 @@ These should be consolidated into a smaller number of more general rules. When d
 
 Your refactor should retain or improve the ability of the grammar to parse correct MTG rules text. Some decrease in parse coverage is acceptable temporarily if it helps simplify and generalize the grammar.
 
+To be clear...
+❌ Do not add rules that only exist to parse additional cards.
+✅ Instead, replace narrow or duplicated rules with more abstracted, reusable patterns.
+
+Remove redundant or overly specific alternatives, introduce meaningful nonterminals to group similar constructs, and ensure each rule contributes to parsing multiple card texts, not just one.
+Prefer descriptive nonterminal names over generic ones (sacrifice_clause instead of action1), and group related productions together and add comments
+
 🧪 Testing Your Refactor
 To test how many cards from our dataset the grammar can parse, run the driver from the project root:
 
 python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/inputs.txt
 
-This reports how many card texts from the input file were successfully parsed. You can use this to benchmark before and after your changes.
+This reports how many card texts from the input file were successfully parsed. The driver reports how many card texts in inputs.txt could be parsed without errors. This is your proxy for the grammar's coverage. Use it to compare before vs after refactoring.
 
 🛠️ Sanity Check (Optional)
 You can test whether the driver is working properly by using a known grammar for the a^n b^n c^n language:
