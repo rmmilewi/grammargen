@@ -3,7 +3,7 @@ You’ve been working on a Lark grammar (using the Earley parser) that parses va
 
 cases/mtg/grammar.lark
 
-We are not asking you to expand the grammar to parse new cards. Instead, your task is to refactor the existing grammar to improve:
+Your goal is to refactor the MTG grammar to reduce duplication and improve structure without significantly degrading parsing performance. Your task is to refactor the existing grammar to improve:
 
 Readability – Make the grammar easier for humans to read and understand.
 
