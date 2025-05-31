@@ -1,0 +1,8 @@
+// Generate a grammar for Lark using the Earley parser that can parse valid Magic The Gathering rules texts from cards.
+// The starting rule should be named start.
+
+start: "start"i   //Note: you can make strings case insensitive by adding i to the end.
+
+//These rules below tell Lark to ignore whitespace.
+%import common.WS -> WS
+%ignore WS

@@ -1,0 +1,34 @@
+import json
+
+def cleanUpCardText(card):
+    text = card["text"].replace('\n', ' ')
+    name = card["name"]
+    if name is not None:
+        if "," in name:
+            splitName = name.split(",")
+            text = text.replace(name, "~f")
+            text = text.replace(splitName[0], "~")
+        else:
+            text = text.replace(name, "~")
+
+    #NOTE: If you want to add additional transformation rules on the input text to make
+    #it easier to parse, you may do so here.
+
+    return f'"""{text}"""\n'
+
+
+def extract_english_card_text(json_path, output_path="inputs.txt"):
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    cards = data.get("data", []).get("cards",[])
+
+    with open(output_path, "w", encoding="utf-8") as out:
+        for card in cards:
+            if card.get("language") == "English" and "text" in card:
+                cardTextOutput = cleanUpCardText(card)
+                print(cardTextOutput)
+                out.write(cardTextOutput)
+
+# Usage
+extract_english_card_text("FDN.json")

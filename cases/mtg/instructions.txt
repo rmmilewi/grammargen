@@ -1,0 +1,21 @@
+Generate a grammar for Lark (https://github.com/lark-parser/lark) using the Earley parser that can parse valid Magic: The Gathering rules texts.
+
+For this task you should add the grammar in cases/morse/grammar.lark.
+
+To check your answer, you can call the driver from the top-level directory (grammargen/) using...
+
+python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/inputs.txt
+
+Other notes...
+* Get as many cards to pass as possible. If you want to change the input text to make it easier to parse, you can do so by modifying
+the function cleanupCardText() in createInputFile.py. Just run that script to regenerate inputs.txt.
+
+* As a sanity check to see if the driver is working correctly, you can try out the a^n b^n c^n case, for which a solution has been provided.
+
+python driver.py --grammar_file cases/an_bn_cn/grammar.lark --input_file cases/an_bn_cn/inputs.txt --transformer cases.an_bn_cn.transformer
+
+Note that you only need to write a grammar for this problem, not a transformer.
+
+* If you want to learn more about what terms and constructions are acceptable in Magic, refer to the Magic Comprehensive Rules ("MagicCompRules 20250404.txt").
+It lists out things like what creature types are legal and should be accounted for in the grammar.
+
