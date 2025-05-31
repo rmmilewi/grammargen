@@ -28,6 +28,10 @@ ability: keyword_ability
        | empty_line
        | keyword_list
        | reminder_text_only
+       | enters_ability
+       | changeling_ability
+       | hexproof_from_ability
+       | simple_effect
 
 // Enchant ability
 enchant_ability: "Enchant"i enchant_target
@@ -132,6 +136,50 @@ ward_cost: mana_cost
          | "Pay" NUMBER "life"i
          | "Discard a card"i
          | "Sacrifice a" permanent_type
+
+// Enters ability
+enters_ability: entity "enters"i "with"i counter "on it"i
+              | entity "enters"i "with"i NUMBER counter "on it"i
+              | entity "enters"i "tapped"i
+              | entity "enters"i "the battlefield"i
+              | entity "enters"i "the battlefield tapped"i
+              | entity "enters"i "the battlefield with"i counter "on it"i
+              | entity "enters"i "the battlefield with"i NUMBER counter "on it"i
+              | entity "enters"i "the battlefield under"i entity "control"i
+              | entity "enters"i "the battlefield under"i entity "control with"i counter "on it"i
+              | entity "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
+              | entity "enters"i "the battlefield under"i entity "control tapped"i
+
+// Changeling ability
+changeling_ability: "Changeling"i changeling_reminder?
+
+// Changeling reminder
+changeling_reminder: "(" "This card is every creature type." ")"
+
+// Hexproof from ability
+hexproof_from_ability: "Hexproof from"i color hexproof_from_reminder?
+
+// Hexproof from reminder
+hexproof_from_reminder: "(" "This creature can't be the target of"i color "spells or abilities your opponents control." ")"
+
+// Simple effect
+simple_effect: entity "deals"i NUMBER "damage to"i target
+             | entity "deals"i NUMBER "damage to"i "each"i entity
+             | entity "deals"i NUMBER "damage to"i "each opponent"i
+             | entity "deals"i NUMBER "damage to"i "target"i entity
+             | entity "deals"i NUMBER "damage to"i "any target"i
+             | entity "deals"i "damage equal to"i entity "to"i target
+             | entity "deals"i "damage equal to its power to"i target
+             | entity "sacrifices"i sacrifice_target
+             | entity "reveals"i entity
+             | entity "mills"i NUMBER "cards"i
+             | entity "discards"i NUMBER? "card"i NUMBER?
+             | entity "discards"i NUMBER "cards"i
+             | entity "discards"i "their hand"i
+             | entity "discards"i "a card of their choice"i
+             | entity "gains control of"i target
+             | entity "gains"i NUMBER "life"i
+             | entity "loses"i NUMBER "life"i
 
 // Reminder text (in parentheses)
 reminder_text: "(" /[^)]+/ ")"
@@ -265,6 +313,38 @@ effect: "create"i token
       | "if you do"i "," effect
       | "if you control ten or more Gates with different names"i "," "you win the game"i
       | "you may draw"i NUMBER? "card"i NUMBER?
+      | entity "deals"i NUMBER "damage to"i target
+      | entity "deals"i NUMBER "damage to"i "each"i entity
+      | entity "deals"i NUMBER "damage to"i "each opponent"i
+      | entity "deals"i NUMBER "damage to"i "target"i entity
+      | entity "deals"i NUMBER "damage to"i "any target"i
+      | entity "deals"i "damage equal to"i entity "to"i target
+      | entity "deals"i "damage equal to its power to"i target
+      | "counter target"i spell_type
+      | "counter"i entity
+      | "copy"i entity
+      | "copy target"i spell_type
+      | "enters"i "with"i counter "on it"i
+      | "enters"i "with"i NUMBER counter "on it"i
+      | "enters"i "tapped"i
+      | "enters"i "the battlefield"i
+      | "enters"i "the battlefield tapped"i
+      | "enters"i "the battlefield with"i counter "on it"i
+      | "enters"i "the battlefield with"i NUMBER counter "on it"i
+      | "enters"i "the battlefield under"i entity "control"i
+      | "enters"i "the battlefield under"i entity "control with"i counter "on it"i
+      | "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
+      | "enters"i "the battlefield under"i entity "control tapped"i
+      | "sacrifices"i sacrifice_target
+      | "reveals"i entity
+      | "mills"i NUMBER "cards"i
+      | "discards"i NUMBER? "card"i NUMBER?
+      | "discards"i NUMBER "cards"i
+      | "discards"i "their hand"i
+      | "discards"i "a card of their choice"i
+      | "gains control of"i target
+      | "gains"i NUMBER "life"i
+      | "loses"i NUMBER "life"i
       | "mill"i NUMBER "cards"i
       | "surveil"i NUMBER
       | "counter target"i spell_type
