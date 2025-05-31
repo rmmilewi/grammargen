@@ -10,6 +10,7 @@ card_text: ability_with_period (NEWLINE ability_with_period)*
 ?ability_with_period: ability "."?
 
 // Different types of abilities
+// Refactored to include new consolidated ability types
 ability: keyword_ability
        | activated_ability
        | triggered_ability
@@ -19,8 +20,9 @@ ability: keyword_ability
        | ward_ability
        | equip_ability
        | land_ability
-       | land_enters_ability
-       | artifact_enters_ability
+       | permanent_enters_ability  // New consolidated rule
+       | land_enters_ability       // Kept for backward compatibility
+       | artifact_enters_ability   // Kept for backward compatibility
        | as_enters_ability
        | if_would_ability
        | crew_ability
@@ -40,8 +42,9 @@ ability: keyword_ability
        | prevent_ability
        | counter_ability
        | sacrifice_ability
-       | gain_life_ability
-       | lose_life_ability
+       | life_change_ability       // New consolidated rule
+       | gain_life_ability         // Kept for backward compatibility
+       | lose_life_ability         // Kept for backward compatibility
        | control_ability
 
 // Possessive ability (for handling ~'s power and toughness)
@@ -73,16 +76,17 @@ identity_description: "the chosen type in addition to its other types"
                     | "a" NUMBER "/" NUMBER color? creature_type "until end of turn"
 
 // Choose one ability
-choose_one_ability: "Choose one" choice_separator
-                  | "Choose one or more" choice_separator
-                  | "Choose two" choice_separator
-                  | trigger_condition "," "choose one" choice_separator
-                  | "Choose one" NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
-                  | "Choose one or more" NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
-                  | "Choose two" NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
-                  | "Choose one" choice_separator NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
-                  | "Choose one or more" choice_separator NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
-                  | "Choose two" choice_separator NEWLINE BULLET effect NEWLINE BULLET effect (NEWLINE BULLET effect)?
+// Refactored to use the modal_choice and modal_options patterns
+choose_one_ability: trigger_prefix? modal_choice choice_separator? choose_one_options?
+
+// Trigger prefix for choose_one_ability
+trigger_prefix: trigger_condition ","
+
+// Choose one options
+choose_one_options: NEWLINE choose_one_option+
+
+// Choose one option
+choose_one_option: BULLET effect NEWLINE?
 
 // Choice separator
 choice_separator: "—"
@@ -136,13 +140,32 @@ landfall_ability: "Landfall"i "—"i "Whenever a land you control enters"i "," o
                 | "Landfall"i "—"i "Whenever a land enters the battlefield under your control"i "," optional_may? effect
 
 // Modal ability
-modal_ability: "Choose one"i "—"i
-             | "Choose one"i "—"i NEWLINE modal_option+
+// Refactored to improve structure and reduce duplication
+modal_ability: modal_choice choice_separator NEWLINE? modal_options?
 
-modal_option: "•"i effect NEWLINE?
-            | "•"i entity "deals"i NUMBER "damage to target"i "player or planeswalker"i "."? NEWLINE?
-            | "•"i "Permanents you control gain"i ability_granted "until end of turn"i "."? NEWLINE?
-            | "•"i "Target creature gains"i ability_granted "until end of turn"i "."? NEWLINE?
+// Modal choice type
+modal_choice: "Choose one"i | "Choose one or more"i | "Choose two"i
+
+// Modal options
+modal_options: modal_option+
+
+// Modal option
+modal_option: modal_bullet modal_effect NEWLINE?
+
+// Modal bullet point
+modal_bullet: "•"i
+
+// Modal effect types
+modal_effect: effect "."?
+            | entity "deals"i NUMBER "damage to target"i damage_target "."?
+            | entity "gains"i ability_granted duration? "."?
+            | entity "gain"i ability_granted duration? "."?
+            | "Target"i entity "gains"i ability_granted duration? "."?
+            | "Permanents you control gain"i ability_granted duration? "."?
+            | "Target creature gains"i ability_granted duration? "."?
+
+// Duration for effects
+duration: "until end of turn"i | "until your next turn"i
 
 // As enters ability
 as_enters_ability: "As"i entity "enters"i "," choose_effect
@@ -195,17 +218,31 @@ land_ability: "{T}" ":" "Add" mana_symbol ("or" mana_symbol)*
             | "{" NUMBER "}" "," "{T}" "," "Sacrifice this artifact" ":" effect
             | "{" NUMBER "}" "," "{T}" ":" effect
 
-// Land enters ability
-land_enters_ability: "This land enters tapped"i "."?
-                   | "This land enters the battlefield tapped"i "."?
-                   | "This land enters"i "."?
-                   | "This land enters"i "with"i counter_type "counter on it"i "."?
-                   | "This land enters"i "with"i NUMBER counter_type "counters on it"i "."?
+// Permanent enters ability
+// Refactored to combine land_enters_ability and artifact_enters_ability
+permanent_enters_ability: permanent_self enters_condition_simple? "."?
 
-// Artifact enters ability
-artifact_enters_ability: "This artifact enters"i "with"i counter_type "counters on it"i "."?
-                       | "This artifact enters"i "with"i NUMBER counter_type "counters on it"i "."?
-                       | "This artifact enters"i "with"i NUMBER counter_type "counter on it"i "."?
+// Self-referential permanent
+permanent_self: "This land"i | "This artifact"i
+
+// Simplified enters condition for permanent_enters_ability
+enters_condition_simple: "enters"i enters_location_simple? enters_with_counters?
+                       | "enters"i enters_location_simple? "tapped"i
+
+// Simplified enters location
+enters_location_simple: "the battlefield"i
+
+// Enters with counters
+enters_with_counters: "with"i counter_amount? counter_type counter_suffix
+
+// Counter suffix (singular or plural)
+counter_suffix: "counter on it"i | "counters on it"i
+
+// Land enters ability (for backward compatibility)
+land_enters_ability: "This land"i enters_condition_simple? "."?
+
+// Artifact enters ability (for backward compatibility)
+artifact_enters_ability: "This artifact"i enters_condition_simple? "."?
 
 // Land actions
 land_action: "Return this land to its owner's hand"i
@@ -271,22 +308,26 @@ ward_cost: mana_cost
          | "Sacrifice a" permanent_type
 
 // Enters ability
-enters_ability: entity "enters"i "with"i counter "on it"i
-              | entity "enters"i "with"i NUMBER counter "on it"i
-              | entity "enters"i "with"i NUMBER counter "counters on it"i
-              | entity "enters"i "with"i "three"i counter "on it"i
-              | entity "enters"i "with"i "three"i counter "counters on it"i
-              | entity "enters"i "tapped"i
-              | entity "enters"i "the battlefield"i
-              | entity "enters"i "the battlefield tapped"i
-              | entity "enters"i "the battlefield with"i counter "on it"i
-              | entity "enters"i "the battlefield with"i NUMBER counter "on it"i
-              | entity "enters"i "the battlefield with"i NUMBER counter "counters on it"i
-              | entity "enters"i "the battlefield with"i NUMBER counter "on it"i
-              | entity "enters"i "the battlefield under"i entity "control"i
-              | entity "enters"i "the battlefield under"i entity "control with"i counter "on it"i
-              | entity "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
-              | entity "enters"i "the battlefield under"i entity "control tapped"i
+// Refactored to reduce duplication and improve structure
+enters_ability: entity "enters"i enters_location? enters_condition?
+
+// Where the entity enters
+enters_location: "the battlefield"i enters_controller?
+
+// Controller of the entering entity
+enters_controller: "under"i entity "control"i
+
+// Condition of entering (tapped, with counters, etc.)
+enters_condition: "tapped"i
+                | "with"i counter_amount counter counter_placement
+                | enters_controller? "with"i counter_amount counter counter_placement
+                | enters_controller? "tapped"i
+
+// Counter amount (optional)
+?counter_amount: NUMBER | "three"i
+
+// Counter placement
+counter_placement: "on it"i | "counters on it"i
 
 // Changeling ability
 changeling_ability: "Changeling"i changeling_reminder?
@@ -301,24 +342,55 @@ hexproof_from_ability: "Hexproof from"i color hexproof_from_reminder?
 hexproof_from_reminder: "(" "This creature can't be the target of"i color "spells or abilities your opponents control." ")"
 
 // Simple effect
-simple_effect: entity "deals"i NUMBER "damage to"i target
-             | entity "deals"i NUMBER "damage to"i "each"i entity
-             | entity "deals"i NUMBER "damage to"i "each opponent"i
-             | entity "deals"i NUMBER "damage to"i "target"i entity
-             | entity "deals"i NUMBER "damage to"i "any target"i
-             | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
-             | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
-             | entity "deals"i "damage equal to"i entity "to"i target
-             | entity "deals"i "damage equal to its power to"i target
-             | entity "sacrifices"i sacrifice_target
-             | entity "reveals"i entity
-             | entity "mills"i NUMBER "cards"i
-             | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i
-             | entity "discards"i NUMBER? "card"i NUMBER?
-             | entity "discards"i NUMBER "cards"i
-             | entity "discards"i "their hand"i
-             | entity "discards"i "a card of their choice"i
-             | entity "gains control of"i target
+// Refactored to group similar patterns and reduce duplication
+simple_effect: damage_effect
+             | sacrifice_effect
+             | reveal_effect
+             | mill_effect
+             | destroy_effect
+             | discard_effect
+             | control_effect
+
+// Damage effect
+damage_effect: entity "deals"i damage_amount "to"i damage_target
+
+// Damage amount
+damage_amount: NUMBER "damage"i
+             | "damage equal to"i entity
+             | "damage equal to its power"i
+
+// Damage target
+damage_target: target
+             | "each"i entity
+             | "each opponent"i
+             | "target"i entity
+             | "any target"i
+             | "target player or planeswalker"i
+             | "each player or planeswalker"i
+
+// Sacrifice effect
+sacrifice_effect: entity "sacrifices"i sacrifice_target
+
+// Reveal effect
+reveal_effect: entity "reveals"i entity
+
+// Mill effect
+mill_effect: entity "mills"i NUMBER "cards"i
+
+// Destroy effect
+destroy_effect: "Destroy target"i permanent_type ("or"i permanent_type)? "an opponent controls"i?
+
+// Discard effect
+discard_effect: entity "discards"i discard_target
+
+// Discard target
+discard_target: NUMBER? "card"i NUMBER?
+              | NUMBER "cards"i
+              | "their hand"i
+              | "a card of their choice"i
+
+// Control effect
+control_effect: entity "gains control of"i target
 
 // Damage type
 damage_type: "combat"i
@@ -336,35 +408,48 @@ counter_ability: "Counter"i "target"i spell_type
                | "Counter"i "target"i "noncreature spell"i
 
 // Sacrifice ability
-sacrifice_ability: entity "sacrifices"i sacrifice_target
-                 | entity "sacrifices"i "a creature of their choice"i
-                 | entity "sacrifices"i "a permanent of their choice"i
-                 | entity "sacrifices"i "a"i permanent_type "of their choice"i
-                 | entity "sacrifices"i NUMBER "creatures of their choice"i
-                 | entity "sacrifices"i NUMBER permanent_type "of their choice"i
-                 | "Target"i entity "sacrifices"i "a creature of their choice"i
-                 | "Target"i entity "sacrifices"i "a permanent of their choice"i
-                 | "Target"i entity "sacrifices"i "a"i permanent_type "of their choice"i
-                 | "Each"i entity "sacrifices"i "a creature of their choice"i
-                 | "Each"i entity "sacrifices"i "a permanent of their choice"i
-                 | "Each"i entity "sacrifices"i "a"i permanent_type "of their choice"i
+// Refactored to reduce duplication and improve structure
+sacrifice_ability: sacrifice_prefix? entity "sacrifices"i sacrifice_object
 
-// Gain life ability
-gain_life_ability: entity "gains"i NUMBER "life"i
-                 | entity "gains"i "life equal to"i entity
-                 | entity "gains"i "life equal to"i entity "'s"i creature_stat
-                 | entity "gains"i "life equal to that creature's"i creature_stat
+// Prefix for sacrifice abilities (who is targeted by the sacrifice)
+sacrifice_prefix: "Target"i | "Each"i
 
-// Lose life ability
-lose_life_ability: entity "loses"i NUMBER "life"i
-                | entity "loses"i "one life"i
-                | entity "loses"i "2 life"i
-                | "that player"i "loses"i NUMBER "life"i
-                | "that player"i "loses"i "2 life"i
-                | entity "loses"i "life equal to"i entity "'s"i creature_stat
-                | entity "loses"i "life equal to that permanent's mana value"i
-                | "each opponent"i "loses"i NUMBER "life"i
-                | "target player"i "loses"i NUMBER "life"i
+// Object of sacrifice (what is being sacrificed)
+sacrifice_object: sacrifice_target
+                | choice_sacrifice
+                | NUMBER choice_sacrifice
+
+// Sacrifice with "of their choice" pattern
+choice_sacrifice: "a creature of their choice"i
+                | "a permanent of their choice"i
+                | "a"i permanent_type "of their choice"i
+                | "creatures of their choice"i
+                | permanent_type "of their choice"i
+
+// Life change ability
+// Refactored to combine gain_life_ability and lose_life_ability
+life_change_ability: entity life_change_verb life_amount
+
+// Life change verb
+life_change_verb: "gains"i | "loses"i
+
+// Life amount
+life_amount: NUMBER "life"i
+           | "one life"i
+           | "2 life"i
+           | "life equal to"i life_reference
+
+// Life reference
+life_reference: entity
+              | entity "'s"i creature_stat
+              | "that creature's"i creature_stat
+
+// Gain life ability (for backward compatibility)
+gain_life_ability: entity "gains"i life_amount
+
+// Lose life ability (for backward compatibility)
+lose_life_ability: entity "loses"i life_amount
+                | "that player"i "loses"i life_amount
 
 // Control ability
 control_ability: entity "controls"i entity
