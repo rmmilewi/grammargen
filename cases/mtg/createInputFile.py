@@ -1,7 +1,7 @@
 import json
 
 def cleanUpCardText(card):
-    text = card["text"].replace('\n', ' ')
+    text = card["text"]
     name = card["name"]
     if name is not None:
         if "," in name:
