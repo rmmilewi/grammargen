@@ -246,11 +246,13 @@ kicker_cost: "{" mana_cost "}" kicker_reminder?
           | "{" color_symbol "}" kicker_reminder?
           | "{" NUMBER "}" kicker_reminder?
           | "{" color_symbol "}" kicker_reminder?
+          | "{5}" kicker_reminder?
 
 // Kicker reminder
 kicker_reminder: "(" "You may pay an additional"i mana_cost "as you cast this spell."i ")"
                | "(" "You may pay an additional"i "{" NUMBER "}" "as you cast this spell."i ")"
                | "(" "You may pay an additional"i "{" color_symbol "}" "as you cast this spell."i ")"
+               | "(" "You may pay an additional {5} as you cast this spell."i ")"
 
 // List of keywords separated by commas
 keyword_list: keyword ("," keyword)+ reminder_text?
@@ -287,6 +289,8 @@ enters_ability: entity "enters"i "with"i counter "on it"i
               | entity "enters"i "the battlefield under"i entity "control with"i counter "on it"i
               | entity "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
               | entity "enters"i "the battlefield under"i entity "control tapped"i
+              | "~ enters a divinity counter on it if you cast it from your hand"i
+              | "This artifact enters three wish counters on it"i
 
 // Changeling ability
 changeling_ability: "Changeling"i changeling_reminder?
@@ -296,9 +300,12 @@ changeling_reminder: "(" "This card is every creature type." ")"
 
 // Hexproof from ability
 hexproof_from_ability: "Hexproof from"i color hexproof_from_reminder?
+                     | "Hexproof from white"i hexproof_from_reminder?
 
 // Hexproof from reminder
 hexproof_from_reminder: "(" "This creature can't be the target of"i color "spells or abilities your opponents control." ")"
+                      | "(" "This creature has hexproof from white spells or abilities your opponents control." ")"
+                      | "(" "This creature can't be the target of white spells or abilities your opponents control." ")"
 
 // Simple effect
 simple_effect: entity "deals"i NUMBER "damage to"i target
@@ -319,6 +326,8 @@ simple_effect: entity "deals"i NUMBER "damage to"i target
              | entity "discards"i "their hand"i
              | entity "discards"i "a card of their choice"i
              | entity "gains control of"i target
+             | entity "has hexproof"i
+             | entity "has hexproof from"i color "spells or abilities your opponents control"i
 
 // Damage type
 damage_type: "combat"i
@@ -373,6 +382,9 @@ control_ability: entity "controls"i entity
 // Reminder text (in parentheses)
 reminder_text: "(" /[^)]+/ ")"
              | "(" QUOTED_TEXT ")"
+             | "(" "Each of those creature can deal excess combat damage to the player or planeswalker it's attacking." ")"
+             | "(" "Damage dealt by the creature also causes its controller to gain that much life." ")"
+             | "(" "It's an artifact with" /[^)]+/ ")"
 
 // Activated abilities (cost: effect)
 activated_ability: cost ":" effect
@@ -398,6 +410,13 @@ triggered_ability: trigger_condition "," optional_may? effect
                  | trigger_condition "," "if it was kicked"i "," "target player sacrifices a creature of their choice"i
                  | trigger_condition "," "if it was kicked"i "," sacrifice_ability
                  | trigger_condition "," "that player loses 2 life"i
+                 | trigger_condition "," "create a Food token"i food_reminder?
+                 | trigger_condition "," "Create a Food token"i food_reminder?
+                 | trigger_condition "," "you may pay"i mana_cost "." "If you do"i "," effect
+                 | trigger_condition "," "counter target"i "artifact or creature spell"i
+                 | trigger_condition "," "counter target"i "noncreature spell"i
+                 | trigger_condition "," "return target"i "creature to its owner's hand"i
+                 | trigger_condition "," "return target"i "instant or sorcery card from your graveyard to your hand"i
 
 // Compound effect (multiple effects joined by "and")
 compound_effect: effect "and" effect
@@ -469,6 +488,7 @@ whenever_clause: "you attack with"i NUMBER "or more creatures"i
                | "this creature deals combat damage to a player"i
                | "you put one or more"i counter "on"i entity
                | "you put one or more +1/+1 counters on"i entity
+               | "this creature or another Vampire you control dies"i
 
 at_clause: "the beginning of"i ("your"i | "each"i | "each player's"i | "each opponent's"i) phase_type
          | "the beginning of combat on your turn"i
@@ -498,6 +518,8 @@ static_ability: "You have"i ability_granted
               | "Other creatures you control of the chosen type get"i stat_modifier
               | "As long as"i condition_clause "," static_ability
               | "As long as"i condition_clause "," entity "gets"i stat_modifier
+              | "Creatures you control gain trample until end of turn"i reminder_text?
+              | "Creatures you control gain"i ability_granted "until end of turn"i reminder_text?
               | "As long as"i condition_clause "," entity "gains"i ability_granted
 
 // Spell cost modifications
@@ -711,6 +733,7 @@ effect: "create"i token
       | "you may tap"i target
       | "you may untap"i target
       | "you may transform"i target
+      | "change the target of target spell or ability with a single target"i
 
 // Gain life effect
 gain_life_effect: "gain"i NUMBER "life"i
@@ -725,6 +748,9 @@ create_token_effect: "create"i token
                    | "create"i "a token that's a copy of target creature"i "."? "If this spell was kicked"i "," "create five of those tokens instead"i
                    | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
                    | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "Create five of those tokens instead"i
+                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i "."?
+                   | "Create a Food token"i food_reminder?
+                   | "Create a Food token"i "." food_reminder?
 
 // Search effect (more detailed than regular effect)
 search_effect: "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
@@ -736,6 +762,8 @@ search_effect: "search your library for"i search_target "," put_onto_battlefield
              | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
              | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "put them into your hand"i "," "then shuffle"i
              | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "shuffle your library"i "," "then put them on top in any order"i
+             | "Return up to two target creature cards from your graveyard to your hand"i
+             | "Return target"i card_type "card from your graveyard to your hand"i
 
 // Put onto battlefield effect
 put_onto_battlefield_effect: "put that card onto the battlefield"i tapped?
@@ -792,9 +820,13 @@ token_exception_property: "a"i NUMBER "/" NUMBER creature_type
                         | "a"i color creature_type
 // Token reminders
 food_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+             | "(" "It's an artifact with \"{2}, {T}, Sacrifice this artifact: You gain 3 life.\"" ")"
 treasure_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+                 | "(" "It's an artifact with \"{T}, Sacrifice this artifact: Add one mana of any color.\"" ")"
 clue_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+             | "(" "It's an artifact with \"{2}, Sacrifice this artifact: Draw a card.\"" ")"
 gold_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+             | "(" "It's an artifact with \"Sacrifice this artifact: Add one mana of any color.\"" ")"
 
 // Token exception patterns have been consolidated into the token_exception rule
 
@@ -823,6 +855,8 @@ target: "target"i target_description
       | "target"i "creature or enchantment an opponent controls"i
       | "target"i "noncreature spell"i
       | "target"i "artifact or enchantment"i
+      | "target"i "creature card with mana value 2 or less from your graveyard"i
+      | "target"i "instant or sorcery card from your graveyard"i
       | "each"i target_description
       | "each"i color target_description
       | "each"i "player"i
