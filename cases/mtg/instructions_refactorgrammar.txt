@@ -18,4 +18,5 @@ rules in the current grammar that were tailor made for particular cards, like...
     | "Each"i entity "sacrifices"i "a"i permanent_type "of their choice"i
 
 These could probably be consolidated. Please consider readability, complexity, and generalizability of the grammar
-when making your changes.
+when making your changes. Ensure that your changes do not weaken the ability of the grammar to parse cards
+(though the number of cards you are able to parse may go down temporarily while you rework it).
