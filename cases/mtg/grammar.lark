@@ -46,6 +46,13 @@ ability: keyword_ability
        | gain_life_ability         // Kept for backward compatibility
        | lose_life_ability         // Kept for backward compatibility
        | control_ability
+       | threshold_ability         // New ability for threshold mechanic
+       | flashback_ability         // New ability for flashback mechanic
+       | planeswalker_ability      // New ability for planeswalker loyalty abilities
+       | surveil_ability           // New ability for surveil mechanic
+       | mill_ability              // New ability for mill mechanic
+       | raid_ability              // New ability for raid mechanic
+       | morbid_ability            // New ability for morbid mechanic
 
 // Possessive ability (for handling ~'s power and toughness)
 possessive_ability: entity APOSTROPHE "s" possessive_property
@@ -192,6 +199,8 @@ if_would_ability: "If"i "~"i "would be put into a graveyard from anywhere"i "," 
                 | "If"i entity "would" "deal damage"i "," replacement_effect
                 | "If a creature you control would deal damage to a permanent or player"i "," "it deals double that damage instead"i
                 | "If"i entity "would" "enter the battlefield"i "," replacement_effect
+                | "If you would gain life"i "," "you gain that much life plus 1 instead"i
+                | "If a source you control would deal damage to an opponent or a permanent an opponent controls"i "," "it deals double that damage instead"i
 
 // Replacement effect
 replacement_effect: "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
@@ -289,6 +298,18 @@ kicker_reminder: "(" "You may pay an additional"i mana_cost "as you cast this sp
                | "(" "You may pay an additional"i "{" NUMBER "}" "as you cast this spell."i ")"
                | "(" "You may pay an additional"i "{" color_symbol "}" "as you cast this spell."i ")"
 
+// Flashback ability
+flashback_ability: "Flashback"i flashback_cost flashback_reminder?
+
+// Flashback cost
+flashback_cost: mana_cost
+              | "{" mana_cost "}"
+
+// Flashback reminder
+flashback_reminder: "(" "You may cast this card from your graveyard for its flashback cost. Then exile it."i ")"
+                  | "(" "You may cast that card from your graveyard for its flashback cost. Then exile it."i ")"
+                  | "(" reminder_text ")"
+
 // List of keywords separated by commas
 keyword_list: keyword ("," keyword)+ reminder_text?
 
@@ -300,16 +321,28 @@ protection_detail: "from" (color | "everything"i | permanent_type | "converted m
 
 // Ward ability
 ward_ability: "Ward"i "—" ward_cost
+            | "Ward"i ward_cost ward_reminder?
 
 // Ward costs
 ward_cost: mana_cost
          | "Pay" NUMBER "life"i
          | "Discard a card"i
          | "Sacrifice a" permanent_type
+         | "{" NUMBER "}"
+         | NUMBER "life"i
+
+// Ward reminder
+ward_reminder: "(" "Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player"i ward_payment "."? ")"
+
+// Ward payment
+ward_payment: "pays"i "{" NUMBER "}"
+            | "pays"i NUMBER "life"
 
 // Enters ability
 // Refactored to reduce duplication and improve structure
 enters_ability: entity "enters"i enters_location? enters_condition?
+              | "This creature enters"i enters_location? enters_condition?
+              | entity "enters"i enters_location? "eight"i counter_type "counters on it if you cast it"i
 
 // Where the entity enters
 enters_location: "the battlefield"i enters_controller?
@@ -322,6 +355,7 @@ enters_condition: "tapped"i
                 | "with"i counter_amount counter counter_placement
                 | enters_controller? "with"i counter_amount counter counter_placement
                 | enters_controller? "tapped"i
+                | "a"i counter "on it"i
 
 // Counter amount (optional)
 ?counter_amount: NUMBER | "three"i
@@ -335,11 +369,56 @@ changeling_ability: "Changeling"i changeling_reminder?
 // Changeling reminder
 changeling_reminder: "(" "This card is every creature type." ")"
 
+// Threshold ability
+threshold_ability: "Threshold"i "—"i threshold_effect
+
+// Threshold effect
+threshold_effect: entity "gains"i ability_granted "as long as there are seven or more cards in your graveyard"i
+                | "This creature gets"i stat_modifier "as long as there are seven or more cards in your graveyard"i
+                | "Whenever this creature attacks"i "," "if there are seven or more cards in your graveyard"i "," effect
+                | "if you attacked this turn"i "," "look at the top three cards of your library"i "." "You may put one of those cards back on top of your library"i "." "Put the rest into your graveyard"i
+                | "Whenever"i entity "attacks"i "," "if there are seven or more cards in your graveyard"i "," effect
+
 // Hexproof from ability
 hexproof_from_ability: "Hexproof from"i color hexproof_from_reminder?
 
 // Hexproof from reminder
 hexproof_from_reminder: "(" "This creature can't be the target of"i color "spells or abilities your opponents control." ")"
+
+// Surveil ability
+surveil_ability: "Surveil"i NUMBER surveil_reminder?
+               | "{T}"i ":" "Surveil"i NUMBER surveil_reminder?
+               | "Whenever you gain life for the first time each turn"i "," "surveil"i NUMBER surveil_reminder?
+
+// Surveil reminder
+surveil_reminder: "(" "Look at the top"i NUMBER "cards of your library"i "," "then put any number of them into your graveyard and the rest on top of your library in any order"i "."? ")"
+                | "(" reminder_text ")"
+
+// Mill ability
+mill_ability: "Mill"i NUMBER "cards"i mill_reminder?
+            | entity "mills"i NUMBER "cards"i mill_reminder?
+            | "Mill three cards"i "," "then return an instant or sorcery card from your graveyard to your hand"i
+
+// Mill reminder
+mill_reminder: "(" "Put the top"i NUMBER "cards of your library into your graveyard"i "."? ")"
+             | "(" reminder_text ")"
+
+// Raid ability
+raid_ability: "Raid"i "—"i raid_effect
+
+// Raid effect
+raid_effect: "When"i entity "enters"i "," "if you attacked this turn"i "," effect
+           | "This creature enters"i "a"i counter "on it if you attacked this turn"i
+           | "When this creature enters"i "," "if you attacked this turn"i "," entity "deals"i NUMBER "damage to any target"i
+           | "At the beginning of your end step"i "," "if you attacked this turn"i "," effect
+
+// Morbid ability
+morbid_ability: "Morbid"i "—"i morbid_effect
+
+// Morbid effect
+morbid_effect: "When this creature enters"i "," "target creature an opponent controls gets"i stat_modifier "until end of turn"i "." "If a creature died this turn"i "," "that creature gets"i stat_modifier "instead"i
+             | "At the beginning of each end step"i "," "if a creature died this turn"i "," effect
+             | "At the beginning of your end step"i "," "if a creature died this turn"i "," effect
 
 // Simple effect
 // Refactored to group similar patterns and reduce duplication
@@ -350,6 +429,7 @@ simple_effect: damage_effect
              | destroy_effect
              | discard_effect
              | control_effect
+             | change_target_effect
 
 // Damage effect
 damage_effect: entity "deals"i damage_amount "to"i damage_target
@@ -368,11 +448,15 @@ damage_target: target
              | "target player or planeswalker"i
              | "each player or planeswalker"i
 
+// Change target effect
+change_target_effect: "Change the target of target spell or ability with a single target"i
+
 // Sacrifice effect
 sacrifice_effect: entity "sacrifices"i sacrifice_target
 
 // Reveal effect
 reveal_effect: entity "reveals"i entity
+             | "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
 
 // Mill effect
 mill_effect: entity "mills"i NUMBER "cards"i
@@ -514,6 +598,7 @@ when_clause: "this creature enters"i
            | entity "enters the battlefield"i
            | entity "enters"i
            | entity "dies"i
+           | "this creature dies"i
            | entity "is put into a graveyard from the battlefield"i
            | "you do"i
            | "you cast"i spell_type
@@ -523,11 +608,13 @@ when_clause: "this creature enters"i
            | entity "enters with"i NUMBER counter "on it"i
            | entity "enters the battlefield with"i counter "on it"i
            | entity "enters the battlefield with"i NUMBER counter "on it"i
+           | "~ dies"i
 
 whenever_clause: "you attack with"i NUMBER "or more creatures"i
                | "you gain life"i
                | "you gain life for the first time"i ("during each of your turns"i | "each turn"i)?
                | "you draw"i ("your second card each turn"i | "a card"i | "cards"i)
+               | "you draw your second card each turn"i
                | "this creature attacks"i
                | "~ attacks"i
                | entity "attacks"i
@@ -553,6 +640,8 @@ whenever_clause: "you attack with"i NUMBER "or more creatures"i
                | "this creature deals combat damage to a player"i
                | "you put one or more"i counter "on"i entity
                | "you put one or more +1/+1 counters on"i entity
+               | "another nontoken creature dies"i
+               | "this creature attacks while you control a creature with power 4 or greater"i
 
 at_clause: "the beginning of"i ("your"i | "each"i | "each player's"i | "each opponent's"i) phase_type
          | "the beginning of combat on your turn"i
@@ -583,6 +672,7 @@ static_ability: "You have"i ability_granted
               | "As long as"i condition_clause "," static_ability
               | "As long as"i condition_clause "," entity "gets"i stat_modifier
               | "As long as"i condition_clause "," entity "gains"i ability_granted
+              | "Creatures you control gain"i ability_granted "until end of turn"i "."? reminder_text?
 
 // Spell cost modifications
 spell_cost_modification: "This spell costs"i cost_modifier
@@ -637,6 +727,9 @@ condition_clause: "you control"i entity
                 | "it's not your turn"i
                 | "you've cast"i "a"i color "spell this turn"i
                 | "you've cast"i "another"i "spell this turn"i
+                | "you have 25 or more life"i
+                | "this creature has three or more +1/+1 counters on it"i
+                | "you control a creature with power 4 or greater"i
 
 // Effects
 effect: "create"i token
@@ -809,6 +902,10 @@ create_token_effect: "create"i token
                    | "create"i "a token that's a copy of target creature"i "."? "If this spell was kicked"i "," "create five of those tokens instead"i
                    | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
                    | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "Create five of those tokens instead"i
+                   | "Create a token that's a copy of target creature"i
+                   | "Create a token that's a copy of target creature you control"i
+                   | "Create a token that's a copy of target creature you control, except it has haste and"i QUOTED_TEXT
+                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
 
 // Search effect (more detailed than regular effect)
 search_effect: "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
@@ -842,6 +939,29 @@ equip_cost: mana_cost
 
 // Equip reminder
 equip_reminder: "Attach to target creature you control. Equip only as a sorcery."i
+
+// Planeswalker ability
+planeswalker_ability: loyalty_ability+
+
+// Loyalty ability
+loyalty_ability: loyalty_cost ":" planeswalker_effect
+
+// Loyalty cost
+loyalty_cost: "[" "+" NUMBER "]"
+            | "[" "−" NUMBER "]"
+            | "[" "-" NUMBER "]"
+            | "[0]"
+
+// Planeswalker effect
+planeswalker_effect: effect
+                   | "Add"i mana_symbol mana_symbol mana_symbol "."? exile_top_effect
+                   | "Create"i token
+                   | entity "deals"i NUMBER "damage divided as you choose among any number of target"i entity
+                   | "Up to one target creature"i "you control"i? "gains"i ability_granted "this turn"i "."? effect
+                   | "You get an emblem with"i QUOTED_TEXT
+
+// Exile top effect
+exile_top_effect: "Exile the top"i NUMBER "cards of your library"i "." "Choose one"i "." "You may play that card this turn"i
 
 // Tokens
 token: "a"i token_description
@@ -998,6 +1118,10 @@ counter_type: "+1/+1"
             | "echo"i
             | "elixir"i
             | "energy"i
+            | "incubation"i
+            | "stun"i
+            | "revival"i
+            | "stash"i
             | "enlightened"i
             | "experience"i
             | "eyeball"i
@@ -1554,6 +1678,10 @@ creature_type: "Cat"i
              | "Yeti"i
              | "Zombie"i
              | "Zubera"i
+             | "Elf Warrior"i
+             | "Human Faerie Detective"i
+             | "Human Faerie Rogue"i
+             | "Detective"i
 
 // Colors
 color: "white"i
