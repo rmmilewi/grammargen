@@ -1,19 +1,45 @@
-Generate a grammar for Lark (https://github.com/lark-parser/lark) using the Earley parser that can parse valid Magic: The Gathering rules texts.
+🧠 Task: Expand a Lark Grammar to Support More Magic: The Gathering Cards
+You are developing a Lark grammar (using the Earley parser) to parse valid Magic: The Gathering (MTG) rules text. The current version of the grammar is located at:
 
-For this task you should add the grammar in cases/mtg/grammar.lark.
+cases/mtg/grammar.lark
 
-To check your answer, you can call the driver from the top-level directory (grammargen/) using...
+Your goal is to expand this grammar so that it can parse a larger portion of real MTG card texts, based on the dataset provided. However, as you expand the grammar, you must prioritize clean design, generalizable patterns, and readability — not one-off hacks to get individual cards working.
+
+🎯 Objective Summary
+Write new rules to increase parse coverage while keeping the grammar concise, general, and maintainable.
+
+This means:
+
+✅ Consolidate similar phrases under shared nonterminals
+
+✅ Introduce reusable patterns instead of copy-pasting variants
+
+✅ Use descriptive rule names for structure (e.g., combat_trigger, sacrifice_clause, mana_production)
+
+❌ Do not hardcode one-off constructions that only match a single card
+
+
+🧪 Evaluate Your Grammar
+Use the following command to test how many card texts are successfully parsed by your grammar:
 
 python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/inputs.txt
 
-Other notes...
-* Get as many cards to pass as possible. You already started work on this. I'd like for you to continue making progress.
+This will report how many MTG cards in inputs.txt were parsed successfully. Your goal is to maximize this number without sacrificing grammar quality.
 
-* As a sanity check to see if the driver is working correctly, you can try out the a^n b^n c^n case, for which a solution has been provided.
+🛠️ Sanity Check (Optional)
+To verify the parsing pipeline works as expected, try the a^n b^n c^n toy grammar:
 
 python driver.py --grammar_file cases/an_bn_cn/grammar.lark --input_file cases/an_bn_cn/inputs.txt --transformer cases.an_bn_cn.transformer
 
-Note that you only need to write a grammar for this problem, not a transformer.
+👨‍🏫 Style Guidelines
+✅ Use case-insensitive literals ("Target"i)
+✅ Structure the grammar with readable nonterminal names
+✅ Add comments to group related rules (e.g., “# combat actions”)
+✅ Reuse patterns where possible; generalize, don’t duplicate
 
-* If you want to learn more about what terms and constructions are acceptable in Magic, refer to the Magic Comprehensive Rules ("MagicCompRules 20250404.txt").
-It lists out things like what creature types are legal and should be accounted for in the grammar.
+📚 Know the Language of Magic
+To better understand what words and constructions are legal in MTG card text, consult the official Magic Comprehensive Rules:
+
+MagicCompRules 20250404.txt
+
+This file includes valid terms, creature types, and phrasing conventions that you should incorporate into the grammar.
