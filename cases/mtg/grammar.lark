@@ -1,8 +1,929 @@
-// Generate a grammar for Lark using the Earley parser that can parse valid Magic The Gathering rules texts from cards.
-// The starting rule should be named start.
+// Grammar for parsing Magic: The Gathering card rules text
+// Using Earley parser for context-sensitive parsing
 
-start: "start"i   //Note: you can make strings case insensitive by adding i to the end.
+start: card_text
 
-//These rules below tell Lark to ignore whitespace.
+// Card text consists of one or more abilities separated by newlines
+card_text: ability_with_period (NEWLINE ability_with_period)*
+
+// Allow periods at the end of abilities
+?ability_with_period: ability "."?
+
+// Different types of abilities
+ability: keyword_ability
+       | activated_ability
+       | triggered_ability
+       | static_ability
+       | spell_cost_modification
+       | effect
+       | ward_ability
+       | equip_ability
+       | land_ability
+       | land_enters_ability
+       | as_enters_ability
+       | if_would_ability
+       | crew_ability
+       | enchant_ability
+       | landfall_ability
+       | empty_line
+
+// Enchant ability
+enchant_ability: "Enchant"i enchant_target
+               | "Enchanted"i enchant_target "gets"i stat_modifier ("and has"i ability_granted)?
+
+// Enchant target
+enchant_target: "creature"i
+              | "player"i
+              | "permanent"i
+              | "land"i
+              | "artifact"i
+              | "enchantment"i
+              | "planeswalker"i
+
+// Landfall ability
+landfall_ability: "Landfall"i "—"i "Whenever a land you control enters"i "," optional_may? effect
+
+// As enters ability
+as_enters_ability: "As"i entity "enters"i "," choose_effect
+
+// Choose effect
+choose_effect: "choose"i choice_target
+
+// Choice target
+choice_target: "a"i "color"i
+             | "a"i "creature type"i
+
+// If would ability
+if_would_ability: "If"i "~"i "would be put into a graveyard from anywhere"i "," replacement_effect
+
+// Replacement effect
+replacement_effect: "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
+
+// Crew ability
+crew_ability: "Crew"i NUMBER crew_reminder?
+
+// Crew reminder
+crew_reminder: "("i "Tap any number of creatures you control with total power"i NUMBER "or more"i ":" "This Vehicle becomes an artifact creature until end of turn."i ")"i
+
+// Land abilities
+land_ability: "{T}" ":" "Add" mana_symbol ("or" mana_symbol)*
+            | "{T}" ":" "Add" "{" color_symbol "}" ("{" color_symbol "}")* 
+            | "{T}" ":" "Add" "one mana of any color" "."?
+            | "{T}" ":" "Add" "three mana of any one color" "."?
+            | "{T}" ":" "Add" "{C}{C}" "."?
+            | "{" NUMBER "}" "," "{T}" "," land_action ":" effect
+            | "{" NUMBER "}" "," "{T}" "," "Sacrifice this artifact" ":" effect
+
+// Land enters ability
+land_enters_ability: "This land enters tapped"i "."?
+
+// Land actions
+land_action: "Return this land to its owner's hand"i
+           | "Sacrifice this land"i
+           | "Tap another untapped land you control"i
+
+// Empty line (can appear in card text)
+empty_line: 
+
+// Keyword abilities (single word or phrase abilities)
+keyword_ability: keyword reminder_text?
+keyword: "First strike"i
+       | "Double strike"i
+       | "Vigilance"i
+       | "Menace"i
+       | "Trample"i
+       | "Reach"i
+       | "Lifelink"i
+       | "Deathtouch"i
+       | "Hexproof"i
+       | "Indestructible"i
+       | "Flash"i
+       | "Flying"i
+       | "Haste"i
+       | "Defender"i
+       | "Protection"i protection_detail?
+
+// Protection details
+protection_detail: "from" (color | "everything"i | permanent_type | "converted mana cost"i NUMBER)
+
+// Ward ability
+ward_ability: "Ward"i "—" ward_cost
+
+// Ward costs
+ward_cost: mana_cost
+         | "Pay" NUMBER "life"i
+         | "Discard a card"i
+         | "Sacrifice a" permanent_type
+
+// Reminder text (in parentheses)
+reminder_text: "(" /[^)]+/ ")"
+
+// Activated abilities (cost: effect)
+activated_ability: cost ":" effect
+                 | "{" mana_cost "}" ":" effect
+                 | "{" mana_cost "}, {T}" ":" effect
+                 | "{" mana_cost "}, {T}, Sacrifice" sacrifice_target ":" effect
+
+// Triggered abilities (When/Whenever/At... trigger, effect)
+triggered_ability: trigger_condition "," optional_may? effect
+                 | trigger_condition "," optional_may? search_effect
+                 | trigger_condition "," optional_may? draw_effect
+
+// Optional may clause
+optional_may: "you may"i
+
+// Trigger conditions
+trigger_condition: "When"i when_clause
+                 | "Whenever"i whenever_clause
+                 | "At"i at_clause
+
+when_clause: "this creature enters"i
+           | "this Equipment enters"i
+           | "~ enters"i
+           | "~ or another nontoken" creature_type "you control enters"i
+           | entity "enters the battlefield"i
+           | entity "dies"i
+           | entity "is put into a graveyard from the battlefield"i
+
+whenever_clause: "you attack with"i NUMBER "or more creatures"i
+               | "you gain life for the first time during each of your turns"i
+               | "this creature attacks"i
+               | "~ attacks"i
+               | entity "attacks"i
+               | entity "blocks"i
+               | entity "becomes blocked"i
+               | entity "deals combat damage to"i entity
+               | "you cast"i spell_type
+               | "an opponent casts"i spell_type
+               | "another creature you control enters"i
+               | "another"i creature_type "you control enters"i
+               | "another nontoken"i creature_type "you control enters"i
+
+at_clause: "the beginning of"i ("your"i | "each"i | "each player's"i | "each opponent's"i) phase_type
+         | "the beginning of combat on your turn"i
+
+// Game phases
+phase_type: "upkeep"i
+          | "draw step"i
+          | "main phase"i
+          | "combat"i
+          | "end step"i
+          | "turn"i
+
+// Static abilities
+static_ability: "You have"i ability_granted
+              | entity "get"i stat_modifier
+              | entity "have"i ability_granted
+              | entity "can't"i action
+              | "Prevent all"i damage_type "damage that would be dealt to"i entity
+              | "Other"i creature_type "you control get"i stat_modifier
+
+// Spell cost modifications
+spell_cost_modification: "This spell costs"i cost_modifier
+
+// Cost modifiers
+cost_modifier: "{" NUMBER "}" "less to cast"i condition?
+             | "{" NUMBER "}" "more to cast"i condition?
+
+// Conditions
+condition: "for each"i entity "you control"i
+         | "if"i condition_clause
+
+condition_clause: "you control"i entity
+                | "you have"i NUMBER "or more"i entity
+                | entity "died this turn"i
+
+// Effects
+effect: "create"i token
+      | "put"i counter "on"i target
+      | "draw"i NUMBER? "card"i NUMBER?
+      | "gain"i NUMBER "life"i
+      | "lose"i NUMBER "life"i
+      | "deal"i NUMBER "damage to"i target
+      | "destroy"i target
+      | "exile"i target
+      | "return"i target "to"i zone
+      | "attach"i entity "to"i target
+      | entity "gain"i ability_granted
+      | entity "get"i stat_modifier "until end of turn"i?
+      | "prevent"i NUMBER? "damage"i
+      | "sacrifice"i sacrifice_target
+      | "discard"i NUMBER? "card"i NUMBER?
+      | "search your library for"i search_target
+      | "shuffle"i
+      | "tap"i target
+      | "untap"i target
+      | "transform"i target
+      | "That creature gains"i ability_granted "until end of turn"i
+      | "Equipped creature"i "gets"i stat_modifier
+      | "Equipped creature"i "has"i ability_granted
+      | "you draw a card and you lose"i NUMBER "life"i
+      | entity "is"i entity "in addition to its other types"i
+      | "draw"i NUMBER "cards"i
+      | target "gets"i stat_modifier "until end of turn"i
+      | target "fights"i target
+      | "reveal"i entity
+      | "if you do"i "," effect
+      | "if you control ten or more Gates with different names"i "," "you win the game"i
+      | "you may draw"i NUMBER? "card"i NUMBER?
+
+// Search effect (more detailed than regular effect)
+search_effect: "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
+
+// Put onto battlefield effect
+put_onto_battlefield_effect: "put that card onto the battlefield"i tapped?
+                           | "put that card onto the battlefield"i "under your control"i tapped?
+                           | "put it onto the battlefield"i tapped?
+                           | "put it onto the battlefield"i "under your control"i tapped?
+
+// Tapped state
+tapped: "tapped"i
+
+// Draw effect
+draw_effect: "draw"i NUMBER? "card"i NUMBER?
+
+// Equip ability
+equip_ability: "Equip"i equip_cost reminder_text?
+
+// Equip cost
+equip_cost: mana_cost
+          | "{" mana_cost "}" "(" mana_cost ":" equip_reminder ")"
+
+// Equip reminder
+equip_reminder: "Attach to target creature you control. Equip only as a sorcery."i
+
+// Tokens
+token: "a"i token_description
+     | NUMBER token_description
+
+// Token descriptions
+token_description: NUMBER "/" NUMBER color? creature_type "creature token"i
+                 | "Food token"i food_reminder?
+                 | "Treasure token"i treasure_reminder?
+                 | "Clue token"i clue_reminder?
+                 | "Gold token"i gold_reminder?
+                 | "copy of"i entity
+
+// Token reminders
+food_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+treasure_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+clue_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+gold_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+
+// Quoted text (for token abilities)
+QUOTED_TEXT: "\"" /[^"]+/ "\""
+
+// Targets
+target: "target"i target_description
+      | "each"i target_description
+      | "all"i target_description
+      | "any"i target_description
+      | "that"i target_description
+      | entity
+
+// Target descriptions
+target_description: creature_type
+                  | permanent_type
+                  | "player"i
+                  | "opponent"i
+                  | "creature"i creature_condition?
+                  | "permanent"i permanent_condition?
+                  | "spell"i spell_condition?
+                  | "creature or enchantment"i
+                  | "nonland permanent"i
+                  | "creature you control"i
+                  | "player or planeswalker"i
+                  | "attacking or blocking creature"i
+                  | "card"i card_condition?
+
+// Conditions for targets
+creature_condition: "you control"i
+                  | "an opponent controls"i
+                  | "with"i ability_granted
+                  | "with power"i comparison NUMBER
+                  | "with toughness"i comparison NUMBER
+                  | "with"i counter "on it"i
+
+permanent_condition: "you control"i
+                   | "an opponent controls"i
+                   | "with"i counter "on it"i
+
+spell_condition: "you control"i
+               | "an opponent controls"i
+               | "with mana value"i comparison NUMBER
+
+card_condition: "in"i zone
+              | "from your graveyard"i
+              | "with mana value"i comparison NUMBER
+
+// Comparisons
+comparison: "less than"i
+          | "greater than"i
+          | "equal to"i
+          | "less than or equal to"i
+          | "greater than or equal to"i
+          | "="
+          | "<"
+          | ">"
+          | "<="
+          | ">="
+
+// Counters
+counter: "a"i counter_type "counter"i
+       | NUMBER counter_type "counter"i NUMBER?
+
+// Counter types
+counter_type: "+1/+1"
+            | "-1/-1"
+            | "loyalty"i
+            | "charge"i
+            | "time"i
+            | "fate"i
+            | "quest"i
+            | "storage"i
+            | "poison"i
+            | "age"i
+            | "arrow"i
+            | "blood"i
+            | "bounty"i
+            | "bribery"i
+            | "coin"i
+            | "credit"i
+            | "cube"i
+            | "currency"i
+            | "death"i
+            | "delay"i
+            | "depletion"i
+            | "despair"i
+            | "devotion"i
+            | "divinity"i
+            | "doom"i
+            | "dream"i
+            | "echo"i
+            | "elixir"i
+            | "energy"i
+            | "enlightened"i
+            | "experience"i
+            | "eyeball"i
+            | "feather"i
+            | "flood"i
+            | "fungus"i
+            | "fury"i
+            | "fuse"i
+            | "gem"i
+            | "glyph"i
+            | "gold"i
+            | "growth"i
+            | "harmony"i
+            | "healing"i
+            | "hit"i
+            | "hoofprint"i
+            | "hour"i
+            | "hourglass"i
+            | "hunger"i
+            | "ice"i
+            | "infection"i
+            | "intervention"i
+            | "javelin"i
+            | "ki"i
+            | "level"i
+            | "luck"i
+            | "magnet"i
+            | "manifestation"i
+            | "mannequin"i
+            | "matrix"i
+            | "mine"i
+            | "mining"i
+            | "mire"i
+            | "music"i
+            | "muster"i
+            | "net"i
+            | "omen"i
+            | "ore"i
+            | "page"i
+            | "pain"i
+            | "paralyzation"i
+            | "petal"i
+            | "petrification"i
+            | "phylactery"i
+            | "pin"i
+            | "plague"i
+            | "polyp"i
+            | "pressure"i
+            | "prey"i
+            | "pupa"i
+            | "rust"i
+            | "scream"i
+            | "shell"i
+            | "shield"i
+            | "shred"i
+            | "silver"i
+            | "sleep"i
+            | "sleight"i
+            | "slime"i
+            | "slumber"i
+            | "soot"i
+            | "soul"i
+            | "spark"i
+            | "spore"i
+            | "storage"i
+            | "strife"i
+            | "study"i
+            | "task"i
+            | "theft"i
+            | "tide"i
+            | "time"i
+            | "tower"i
+            | "training"i
+            | "trap"i
+            | "treasure"i
+            | "velocity"i
+            | "verse"i
+            | "vitality"i
+            | "wage"i
+            | "winch"i
+            | "wind"i
+            | "wish"i
+
+// Stat modifiers
+stat_modifier: "+" NUMBER "/" "+" NUMBER
+             | "-" NUMBER "/" "-" NUMBER
+             | "+" NUMBER "/" "-" NUMBER
+             | "-" NUMBER "/" "+" NUMBER
+
+// Abilities granted
+ability_granted: "flying"i
+               | "first strike"i
+               | "double strike"i
+               | "vigilance"i
+               | "trample"i
+               | "haste"i
+               | "hexproof"i
+               | "indestructible"i
+               | "lifelink"i
+               | "deathtouch"i
+               | "menace"i
+               | "reach"i
+               | "protection from"i color
+               | "ward"i ward_cost
+               | "deathtouch and lifelink"i
+
+// Costs
+cost: "{T}"
+    | mana_cost
+    | "{T}, Sacrifice"i sacrifice_target
+    | "{T}, Pay"i NUMBER "life"i
+    | "{T}, Discard a card"i
+    | "Sacrifice"i sacrifice_target
+    | "Pay"i NUMBER "life"i
+    | "Discard a card"i
+    | "Exile"i exile_target
+    | "Tap"i tap_target
+    | "Tap"i NUMBER "untapped"i permanent_type "you control"i
+
+// Sacrifice targets
+sacrifice_target: "it"i
+                | "this artifact"i
+                | "this creature"i
+                | "this token"i
+                | "a"i permanent_type
+                | "another"i permanent_type
+                | NUMBER permanent_type
+
+// Exile targets
+exile_target: "it"i
+            | "this card"i
+            | "this creature"i
+            | "a"i card_type "card from your graveyard"i
+            | "a"i card_type "card from your hand"i
+            | NUMBER card_type "cards from your graveyard"i
+            | NUMBER card_type "cards from your hand"i
+
+// Tap targets
+tap_target: "an untapped"i permanent_type "you control"i
+          | NUMBER "untapped"i permanent_type "you control"i
+
+// Search targets
+search_target: "a"i card_type "card"i
+             | "a card with mana value"i comparison NUMBER
+             | "a"i creature_type "card"i
+             | "a basic land card"i
+             | "a Gate card"i
+             | "a land card"i
+
+// Zones
+zone: "your hand"i
+    | "its owner's hand"i
+    | "your graveyard"i
+    | "its owner's graveyard"i
+    | "your library"i
+    | "the top of your library"i
+    | "the bottom of your library"i
+    | "the battlefield"i
+    | "exile"i
+
+// Damage types
+damage_type: "combat"i
+           | "noncombat"i
+
+// Actions
+action: "attack"i
+      | "block"i
+      | "be blocked"i
+      | "be the target of spells or abilities"i entity "control"i
+      | "cast spells"i
+      | "activate abilities"i
+
+// Entities
+entity: "you"i
+      | "your opponents"i
+      | "each opponent"i
+      | "each player"i
+      | "target player"i
+      | "target opponent"i
+      | "this creature"i
+      | "this permanent"i
+      | "~"i
+      | "~f"i
+      | "creatures you control"i
+      | "other creatures you control"i
+      | "creatures your opponents control"i
+      | "creatures"i
+      | "permanents you control"i
+      | "permanents your opponents control"i
+      | "permanents"i
+      | "target"i permanent_type
+      | "target"i creature_type
+      | NUMBER? permanent_type "you control"i
+      | NUMBER? permanent_type "an opponent controls"i
+      | NUMBER? creature_type "you control"i
+      | NUMBER? creature_type "an opponent controls"i
+
+// Permanent types
+permanent_type: "creature"i
+              | "artifact"i
+              | "enchantment"i
+              | "land"i
+              | "planeswalker"i
+              | "token"i
+              | "Equipment"i
+              | "Aura"i
+              | "Vehicle"i
+              | "Food"i
+              | "Treasure"i
+              | "Clue"i
+              | "Gold"i
+              | "Saga"i
+              | "nontoken"i permanent_type
+              | "noncreature"i permanent_type
+              | "nonland"i permanent_type
+              | "nonartifact"i permanent_type
+              | "nonenchantment"i permanent_type
+              | "nonplaneswalker"i permanent_type
+
+// Card types
+card_type: "creature"i
+         | "artifact"i
+         | "enchantment"i
+         | "instant"i
+         | "sorcery"i
+         | "land"i
+         | "planeswalker"i
+         | "basic land"i
+         | "nonbasic land"i
+         | "nonland"i
+
+// Spell types
+spell_type: "a spell"i
+          | "an instant spell"i
+          | "a sorcery spell"i
+          | "a creature spell"i
+          | "an artifact spell"i
+          | "an enchantment spell"i
+          | "a planeswalker spell"i
+          | "a spell with mana value"i comparison NUMBER
+          | "a"i color "spell"i
+
+// Creature types (common ones from the comprehensive rules)
+creature_type: "Cat"i
+             | "Human"i
+             | "Elf"i
+             | "Goblin"i
+             | "Zombie"i
+             | "Vampire"i
+             | "Dragon"i
+             | "Angel"i
+             | "Demon"i
+             | "Beast"i
+             | "Bird"i
+             | "Soldier"i
+             | "Warrior"i
+             | "Wizard"i
+             | "Shaman"i
+             | "Cleric"i
+             | "Rogue"i
+             | "Assassin"i
+             | "Knight"i
+             | "Elemental"i
+             | "Spirit"i
+             | "Giant"i
+             | "Dwarf"i
+             | "Merfolk"i
+             | "Treefolk"i
+             | "Insect"i
+             | "Spider"i
+             | "Fungus"i
+             | "Wall"i
+             | "Construct"i
+             | "Golem"i
+             | "Artifact Creature"i
+             | "Eldrazi"i
+             | "God"i
+             | "Phyrexian"i
+             | "Advisor"i
+             | "Aetherborn"i
+             | "Alien"i
+             | "Ally"i
+             | "Antelope"i
+             | "Ape"i
+             | "Archer"i
+             | "Archon"i
+             | "Army"i
+             | "Artificer"i
+             | "Assembly-Worker"i
+             | "Atog"i
+             | "Aurochs"i
+             | "Avatar"i
+             | "Badger"i
+             | "Barbarian"i
+             | "Bard"i
+             | "Basilisk"i
+             | "Bat"i
+             | "Bear"i
+             | "Beeble"i
+             | "Berserker"i
+             | "Boar"i
+             | "Bringer"i
+             | "Brushwagg"i
+             | "Camarid"i
+             | "Camel"i
+             | "Caribou"i
+             | "Carrier"i
+             | "Centaur"i
+             | "Cephalid"i
+             | "Chimera"i
+             | "Citizen"i
+             | "Cockatrice"i
+             | "Coward"i
+             | "Crab"i
+             | "Crocodile"i
+             | "Cyclops"i
+             | "Dauthi"i
+             | "Demigod"i
+             | "Deserter"i
+             | "Devil"i
+             | "Dinosaur"i
+             | "Djinn"i
+             | "Dog"i
+             | "Donkey"i
+             | "Drake"i
+             | "Dreadnought"i
+             | "Drone"i
+             | "Druid"i
+             | "Dryad"i
+             | "Egg"i
+             | "Elder"i
+             | "Eldrazi Spawn"i
+             | "Elephant"i
+             | "Elk"i
+             | "Eye"i
+             | "Faerie"i
+             | "Ferret"i
+             | "Fish"i
+             | "Fox"i
+             | "Frog"i
+             | "Gamer"i
+             | "Gargoyle"i
+             | "Germ"i
+             | "Gnome"i
+             | "Goat"i
+             | "Gorgon"i
+             | "Graveborn"i
+             | "Gremlin"i
+             | "Griffin"i
+             | "Hag"i
+             | "Harpy"i
+             | "Hellion"i
+             | "Hippo"i
+             | "Hippogriff"i
+             | "Homarid"i
+             | "Homunculus"i
+             | "Horror"i
+             | "Horse"i
+             | "Hound"i
+             | "Hydra"i
+             | "Hyena"i
+             | "Illusion"i
+             | "Imp"i
+             | "Incarnation"i
+             | "Insect"i
+             | "Jellyfish"i
+             | "Juggernaut"i
+             | "Kavu"i
+             | "Kirin"i
+             | "Kithkin"i
+             | "Kobold"i
+             | "Kor"i
+             | "Kraken"i
+             | "Lamia"i
+             | "Lammasu"i
+             | "Leech"i
+             | "Leviathan"i
+             | "Lhurgoyf"i
+             | "Licid"i
+             | "Lizard"i
+             | "Manticore"i
+             | "Masticore"i
+             | "Mercenary"i
+             | "Metathran"i
+             | "Minion"i
+             | "Minotaur"i
+             | "Mole"i
+             | "Monger"i
+             | "Mongoose"i
+             | "Monk"i
+             | "Monkey"i
+             | "Moonfolk"i
+             | "Mouse"i
+             | "Mutant"i
+             | "Myr"i
+             | "Mystic"i
+             | "Naga"i
+             | "Nautilus"i
+             | "Nephilim"i
+             | "Nightmare"i
+             | "Nightstalker"i
+             | "Ninja"i
+             | "Noble"i
+             | "Noggle"i
+             | "Nomad"i
+             | "Nymph"i
+             | "Octopus"i
+             | "Ogre"i
+             | "Ooze"i
+             | "Orb"i
+             | "Orc"i
+             | "Orgg"i
+             | "Otter"i
+             | "Ouphe"i
+             | "Ox"i
+             | "Oyster"i
+             | "Pangolin"i
+             | "Pegasus"i
+             | "Pentavite"i
+             | "Pest"i
+             | "Phelddagrif"i
+             | "Phoenix"i
+             | "Pilot"i
+             | "Pincher"i
+             | "Pirate"i
+             | "Plant"i
+             | "Praetor"i
+             | "Processor"i
+             | "Rabbit"i
+             | "Rat"i
+             | "Rebel"i
+             | "Reflection"i
+             | "Rhino"i
+             | "Rigger"i
+             | "Rogue"i
+             | "Sable"i
+             | "Salamander"i
+             | "Samurai"i
+             | "Sand"i
+             | "Saproling"i
+             | "Satyr"i
+             | "Scarecrow"i
+             | "Scion"i
+             | "Scorpion"i
+             | "Scout"i
+             | "Serpent"i
+             | "Servo"i
+             | "Shade"i
+             | "Shaman"i
+             | "Shapeshifter"i
+             | "Shark"i
+             | "Sheep"i
+             | "Siren"i
+             | "Skeleton"i
+             | "Slith"i
+             | "Sliver"i
+             | "Slug"i
+             | "Snake"i
+             | "Specter"i
+             | "Spellshaper"i
+             | "Sphinx"i
+             | "Spider"i
+             | "Spike"i
+             | "Squid"i
+             | "Squirrel"i
+             | "Starfish"i
+             | "Surrakar"i
+             | "Survivor"i
+             | "Tetravite"i
+             | "Thalakos"i
+             | "Thopter"i
+             | "Thrull"i
+             | "Treefolk"i
+             | "Trilobite"i
+             | "Triskelavite"i
+             | "Troll"i
+             | "Turtle"i
+             | "Unicorn"i
+             | "Vampire"i
+             | "Vedalken"i
+             | "Viashino"i
+             | "Volver"i
+             | "Walrus"i
+             | "Warlock"i
+             | "Warrior"i
+             | "Weird"i
+             | "Werewolf"i
+             | "Whale"i
+             | "Wolf"i
+             | "Wolverine"i
+             | "Wombat"i
+             | "Worm"i
+             | "Wraith"i
+             | "Wurm"i
+             | "Yeti"i
+             | "Zombie"i
+             | "Zubera"i
+
+// Colors
+color: "white"i
+     | "blue"i
+     | "black"i
+     | "red"i
+     | "green"i
+     | "colorless"i
+     | "multicolored"i
+     | "monocolored"i
+
+// Mana costs
+mana_cost: "{" mana_symbol+ "}"
+         | "{" NUMBER "}"
+         | "{" color_symbol "}"
+         | "{" hybrid_symbol "}"
+         | "{" phyrexian_symbol "}"
+         | "{X}"
+         | mana_cost mana_cost
+
+// Mana symbols
+mana_symbol: NUMBER
+           | color_symbol
+           | hybrid_symbol
+           | phyrexian_symbol
+           | "X"
+
+// Color symbols
+color_symbol: "W"
+            | "U"
+            | "B"
+            | "R"
+            | "G"
+            | "C"
+
+// Hybrid symbols
+hybrid_symbol: "W/U"
+             | "W/B"
+             | "U/B"
+             | "U/R"
+             | "B/R"
+             | "B/G"
+             | "R/G"
+             | "R/W"
+             | "G/W"
+             | "G/U"
+             | "2/W"
+             | "2/U"
+             | "2/B"
+             | "2/R"
+             | "2/G"
+
+// Phyrexian symbols
+phyrexian_symbol: "W/P"
+                | "U/P"
+                | "B/P"
+                | "R/P"
+                | "G/P"
+
+// Numbers
+NUMBER: /[0-9]+/ | "X" | "one" | "two" | "three" | "four" | "five" | "six" | "seven" | "eight" | "nine" | "ten" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
+
+// Newline
+NEWLINE: /\n/
+
+// Import common whitespace and ignore it
 %import common.WS -> WS
 %ignore WS
