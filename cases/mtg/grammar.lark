@@ -20,11 +20,13 @@ ability: keyword_ability
        | equip_ability
        | land_ability
        | land_enters_ability
+       | artifact_enters_ability
        | as_enters_ability
        | if_would_ability
        | crew_ability
        | enchant_ability
        | landfall_ability
+       | modal_ability
        | empty_line
        | keyword_list
        | reminder_text_only
@@ -35,6 +37,12 @@ ability: keyword_ability
        | choose_one_ability
        | identity_ability
        | possessive_ability
+       | prevent_ability
+       | counter_ability
+       | sacrifice_ability
+       | gain_life_ability
+       | lose_life_ability
+       | control_ability
 
 // Possessive ability (for handling ~'s power and toughness)
 possessive_ability: entity APOSTROPHE "s" possessive_property
@@ -85,6 +93,8 @@ choice_separator: "—"
 // Enchant ability
 enchant_ability: "Enchant"i enchant_target
                | "Enchanted"i enchant_target "gets"i stat_modifier ("and has"i ability_granted)?
+               | "Enchanted"i enchant_target "gets"i stat_modifier ("and gains"i ability_granted)?
+               | "Enchanted"i "creature"i "gets"i stat_modifier "and"i "gains"i keyword "."? reminder_text?
 
 // Enchant target
 enchant_target: "creature"i
@@ -125,6 +135,15 @@ landfall_ability: "Landfall"i "—"i "Whenever a land you control enters"i "," o
                 | "Landfall"i "—"i "Whenever a land you control enters"i "," optional_may? compound_effect
                 | "Landfall"i "—"i "Whenever a land enters the battlefield under your control"i "," optional_may? effect
 
+// Modal ability
+modal_ability: "Choose one"i "—"i
+             | "Choose one"i "—"i NEWLINE modal_option+
+
+modal_option: "•"i effect NEWLINE?
+            | "•"i entity "deals"i NUMBER "damage to target"i "player or planeswalker"i "."? NEWLINE?
+            | "•"i "Permanents you control gain"i ability_granted "until end of turn"i "."? NEWLINE?
+            | "•"i "Target creature gains"i ability_granted "until end of turn"i "."? NEWLINE?
+
 // As enters ability
 as_enters_ability: "As"i entity "enters"i "," choose_effect
                  | "As"i entity "enters the battlefield"i "," choose_effect
@@ -143,10 +162,12 @@ choice_target: "a"i "color"i
 // If would ability
 if_would_ability: "If"i "~"i "would be put into a graveyard from anywhere"i "," replacement_effect
                 | "If"i entity "would" action "," replacement_effect
+                | "If"i "you would"i "gain life"i "," "you gain that much life plus 1 instead"i
                 | "If"i entity "would" "die"i "," replacement_effect
                 | "If"i entity "would" "be destroyed"i "," replacement_effect
                 | "If"i "damage would be dealt to"i entity "," replacement_effect
                 | "If"i entity "would" "deal damage"i "," replacement_effect
+                | "If a creature you control would deal damage to a permanent or player"i "," "it deals double that damage instead"i
                 | "If"i entity "would" "enter the battlefield"i "," replacement_effect
 
 // Replacement effect
@@ -166,7 +187,7 @@ crew_reminder: "("i "Tap any number of creatures you control with total power"i 
 
 // Land abilities
 land_ability: "{T}" ":" "Add" mana_symbol ("or" mana_symbol)*
-            | "{T}" ":" "Add" "{" color_symbol "}" ("{" color_symbol "}")* 
+            | "{T}" ":" "Add" "{" color_symbol "}" ("{" color_symbol "}")*
             | "{T}" ":" "Add" "one mana of any color" "."?
             | "{T}" ":" "Add" "three mana of any one color" "."?
             | "{T}" ":" "Add" "{C}{C}" "."?
@@ -178,6 +199,13 @@ land_ability: "{T}" ":" "Add" mana_symbol ("or" mana_symbol)*
 land_enters_ability: "This land enters tapped"i "."?
                    | "This land enters the battlefield tapped"i "."?
                    | "This land enters"i "."?
+                   | "This land enters"i "with"i counter_type "counter on it"i "."?
+                   | "This land enters"i "with"i NUMBER counter_type "counters on it"i "."?
+
+// Artifact enters ability
+artifact_enters_ability: "This artifact enters"i "with"i counter_type "counters on it"i "."?
+                       | "This artifact enters"i "with"i NUMBER counter_type "counters on it"i "."?
+                       | "This artifact enters"i "with"i NUMBER counter_type "counter on it"i "."?
 
 // Land actions
 land_action: "Return this land to its owner's hand"i
@@ -185,7 +213,7 @@ land_action: "Return this land to its owner's hand"i
            | "Tap another untapped land you control"i
 
 // Empty line (can appear in card text)
-empty_line: 
+empty_line:
 
 // Keyword abilities (single word or phrase abilities)
 keyword_ability: keyword reminder_text?
@@ -213,7 +241,16 @@ keyword: "First strike"i
        | "Ward"i
 
 // Kicker cost
-kicker_cost: "{" mana_cost "}"
+kicker_cost: "{" mana_cost "}" kicker_reminder?
+          | "{" NUMBER "}" "{" color_symbol "}" kicker_reminder?
+          | "{" color_symbol "}" kicker_reminder?
+          | "{" NUMBER "}" kicker_reminder?
+          | "{" color_symbol "}" kicker_reminder?
+
+// Kicker reminder
+kicker_reminder: "(" "You may pay an additional"i mana_cost "as you cast this spell."i ")"
+               | "(" "You may pay an additional"i "{" NUMBER "}" "as you cast this spell."i ")"
+               | "(" "You may pay an additional"i "{" color_symbol "}" "as you cast this spell."i ")"
 
 // List of keywords separated by commas
 keyword_list: keyword ("," keyword)+ reminder_text?
@@ -236,10 +273,15 @@ ward_cost: mana_cost
 // Enters ability
 enters_ability: entity "enters"i "with"i counter "on it"i
               | entity "enters"i "with"i NUMBER counter "on it"i
+              | entity "enters"i "with"i NUMBER counter "counters on it"i
+              | entity "enters"i "with"i "three"i counter "on it"i
+              | entity "enters"i "with"i "three"i counter "counters on it"i
               | entity "enters"i "tapped"i
               | entity "enters"i "the battlefield"i
               | entity "enters"i "the battlefield tapped"i
               | entity "enters"i "the battlefield with"i counter "on it"i
+              | entity "enters"i "the battlefield with"i NUMBER counter "on it"i
+              | entity "enters"i "the battlefield with"i NUMBER counter "counters on it"i
               | entity "enters"i "the battlefield with"i NUMBER counter "on it"i
               | entity "enters"i "the battlefield under"i entity "control"i
               | entity "enters"i "the battlefield under"i entity "control with"i counter "on it"i
@@ -264,18 +306,69 @@ simple_effect: entity "deals"i NUMBER "damage to"i target
              | entity "deals"i NUMBER "damage to"i "each opponent"i
              | entity "deals"i NUMBER "damage to"i "target"i entity
              | entity "deals"i NUMBER "damage to"i "any target"i
+             | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
+             | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
              | entity "deals"i "damage equal to"i entity "to"i target
              | entity "deals"i "damage equal to its power to"i target
              | entity "sacrifices"i sacrifice_target
              | entity "reveals"i entity
              | entity "mills"i NUMBER "cards"i
+             | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i
              | entity "discards"i NUMBER? "card"i NUMBER?
              | entity "discards"i NUMBER "cards"i
              | entity "discards"i "their hand"i
              | entity "discards"i "a card of their choice"i
              | entity "gains control of"i target
-             | entity "gains"i NUMBER "life"i
-             | entity "loses"i NUMBER "life"i
+
+// Damage type
+damage_type: "combat"i
+           | "noncombat"i
+
+// Prevent ability
+prevent_ability: "Prevent"i "all"i damage_type? "damage"i "that would be dealt to"i entity
+               | "Prevent"i NUMBER "of"i "that"i "damage"i
+               | "Prevent"i "that"i "damage"i
+               | "Prevent"i "all combat damage that would be dealt"i condition_clause?
+
+// Counter ability
+counter_ability: "Counter"i "target"i spell_type
+               | "Counter"i "target"i permanent_type "spell"i
+               | "Counter"i "target"i "noncreature spell"i
+
+// Sacrifice ability
+sacrifice_ability: entity "sacrifices"i sacrifice_target
+                 | entity "sacrifices"i "a creature of their choice"i
+                 | entity "sacrifices"i "a permanent of their choice"i
+                 | entity "sacrifices"i "a"i permanent_type "of their choice"i
+                 | entity "sacrifices"i NUMBER "creatures of their choice"i
+                 | entity "sacrifices"i NUMBER permanent_type "of their choice"i
+                 | "Target"i entity "sacrifices"i "a creature of their choice"i
+                 | "Target"i entity "sacrifices"i "a permanent of their choice"i
+                 | "Target"i entity "sacrifices"i "a"i permanent_type "of their choice"i
+                 | "Each"i entity "sacrifices"i "a creature of their choice"i
+                 | "Each"i entity "sacrifices"i "a permanent of their choice"i
+                 | "Each"i entity "sacrifices"i "a"i permanent_type "of their choice"i
+
+// Gain life ability
+gain_life_ability: entity "gains"i NUMBER "life"i
+                 | entity "gains"i "life equal to"i entity
+                 | entity "gains"i "life equal to"i entity "'s"i creature_stat
+                 | entity "gains"i "life equal to that creature's"i creature_stat
+
+// Lose life ability
+lose_life_ability: entity "loses"i NUMBER "life"i
+                | entity "loses"i "one life"i
+                | entity "loses"i "2 life"i
+                | "that player"i "loses"i NUMBER "life"i
+                | "that player"i "loses"i "2 life"i
+                | entity "loses"i "life equal to"i entity "'s"i creature_stat
+                | entity "loses"i "life equal to that permanent's mana value"i
+                | "each opponent"i "loses"i NUMBER "life"i
+                | "target player"i "loses"i NUMBER "life"i
+
+// Control ability
+control_ability: entity "controls"i entity
+               | "you control"i entity
 
 // Reminder text (in parentheses)
 reminder_text: "(" /[^)]+/ ")"
@@ -286,6 +379,11 @@ activated_ability: cost ":" effect
                  | "{" mana_cost "}" ":" effect
                  | "{" mana_cost "}, {T}" ":" effect
                  | "{" mana_cost "}, {T}, Sacrifice" sacrifice_target ":" effect
+                 | "{" NUMBER "}, {T}" ":" effect
+                 | "{" color_symbol "}, {T}" ":" effect
+                 | "{" NUMBER "}, {T}, Sacrifice" sacrifice_target ":" effect
+                 | "{" color_symbol "}, {T}, Sacrifice" sacrifice_target ":" effect
+                 | "{" NUMBER "}, {T}, Return" entity "to its owner's hand" ":" effect
 
 // Triggered abilities (When/Whenever/At... trigger, effect)
 triggered_ability: trigger_condition "," optional_may? effect
@@ -296,6 +394,9 @@ triggered_ability: trigger_condition "," optional_may? effect
                  | trigger_condition "," optional_may? create_token_effect
                  | trigger_condition "," if_clause effect
                  | trigger_condition "," optional_may? compound_effect
+                 | trigger_condition "," "if it was kicked"i "," "target player sacrifices a creature of their choice"i
+                 | trigger_condition "," "if it was kicked"i "," sacrifice_ability
+                 | trigger_condition "," "that player loses 2 life"i
 
 // Compound effect (multiple effects joined by "and")
 compound_effect: effect "and" effect
@@ -308,6 +409,8 @@ optional_may: "you may"i
 
 // If clause
 if_clause: "if"i condition_clause ","
+         | "if"i "it was kicked"i ","
+         | "if"i "this spell was kicked"i ","
 
 // Trigger conditions
 trigger_condition: "When"i when_clause
@@ -329,6 +432,12 @@ when_clause: "this creature enters"i
            | entity "is put into a graveyard from the battlefield"i
            | "you do"i
            | "you cast"i spell_type
+           | "it was kicked"i
+           | "this spell was kicked"i
+           | entity "enters with"i counter "on it"i
+           | entity "enters with"i NUMBER counter "on it"i
+           | entity "enters the battlefield with"i counter "on it"i
+           | entity "enters the battlefield with"i NUMBER counter "on it"i
 
 whenever_clause: "you attack with"i NUMBER "or more creatures"i
                | "you gain life"i
@@ -354,10 +463,16 @@ whenever_clause: "you attack with"i NUMBER "or more creatures"i
                | entity "dies"i
                | color creature_type "you control attacks"i
                | "a" color creature_type "you control attacks"i
+               | "a creature an opponent controls dies"i
+               | "a creature deals combat damage to a player"i
+               | "this creature deals combat damage to a player"i
+               | "you put one or more"i counter "on"i entity
+               | "you put one or more +1/+1 counters on"i entity
 
 at_clause: "the beginning of"i ("your"i | "each"i | "each player's"i | "each opponent's"i) phase_type
          | "the beginning of combat on your turn"i
          | "the beginning of your end step"i
+         | "the beginning of the end step"i
 
 // Game phases
 phase_type: "upkeep"i
@@ -374,7 +489,12 @@ static_ability: "You have"i ability_granted
               | entity "can't"i action
               | "Prevent all"i damage_type "damage that would be dealt to"i entity
               | "Other"i creature_type "you control get"i stat_modifier
+              | "Other"i creature_type "you control get"i stat_modifier "and"i "have"i keyword
+              | "Other Angels you control get"i stat_modifier "and"i "have"i "lifelink"i
               | entity "gets"i stat_modifier ("as long as"i condition_clause)?
+              | "Creatures you control"i "get"i stat_modifier "and"i "gain"i "indestructible"i "until end of turn"i
+              | "Creatures you control"i "get"i "+1/+0"i "and"i "gain"i "indestructible"i "until end of turn"i "."? reminder_text?
+              | "Other creatures you control of the chosen type get"i stat_modifier
               | "As long as"i condition_clause "," static_ability
               | "As long as"i condition_clause "," entity "gets"i stat_modifier
               | "As long as"i condition_clause "," entity "gains"i ability_granted
@@ -401,6 +521,32 @@ condition_clause: "you control"i entity
                 | "you have"i NUMBER "or more"i "cards in your hand"i
                 | "you have"i NUMBER "or more"i "cards in your graveyard"i
                 | "you have"i NUMBER "or more"i "life"i
+                | "you have"i NUMBER "or fewer"i "life"i
+                | "it's your turn"i
+                | "it's not your turn"i
+                | "you attacked this turn"i
+                | "you cast"i spell_type "this turn"i
+                | "you've cast"i spell_type "this turn"i
+                | "you've cast"i NUMBER "or more"i spell_type "this turn"i
+                | "you've cast"i NUMBER "or more instant and sorcery spells this turn"i
+                | "you've gained"i NUMBER "or more life this turn"i
+                | "a creature died this turn"i
+                | "a creature you control died this turn"i
+                | "a creature an opponent controls died this turn"i
+                | "a creature with power"i NUMBER "or greater"i "enters the battlefield under your control"i
+                | "a creature with power"i NUMBER "or greater"i "died this turn"i
+                | "an opponent controls"i entity
+                | "an opponent has"i NUMBER "or more cards in hand"i
+                | "an opponent has"i NUMBER "or more cards in their graveyard"i
+                | "an opponent has"i NUMBER "or more life"i
+                | "an opponent has"i NUMBER "or fewer life"i
+                | "you control a creature with power"i NUMBER "or greater"i
+                | "during your turn"i
+                | "this spell was kicked"i
+                | "this creature has a"i counter "on it"i
+                | "this creature has"i NUMBER "or more"i counter "on it"i
+                | "this creature has a +1/+1 counter on it"i
+                | "this creature has"i NUMBER "or more +1/+1 counters on it"i
                 | "an opponent controls"i NUMBER "or more"i entity
                 | "it's your turn"i
                 | "it's not your turn"i
@@ -409,6 +555,7 @@ condition_clause: "you control"i entity
 
 // Effects
 effect: "create"i token
+      | "create"i "a token that's a copy of target"i entity "."? "If this spell was kicked"i "," "create five of those tokens instead"i
       | "put"i counter "on"i target
       | "draw"i NUMBER? "card"i NUMBER?
       | "gain"i NUMBER "life"i
@@ -418,7 +565,23 @@ effect: "create"i token
       | "destroy"i target
       | "destroy all"i target_description
       | "exile"i target
+      | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i "." "You lose life equal to that permanent's mana value"i
       | "exile all"i target_description
+      | "search your library for"i search_target "," "reveal it"i "," "put it into your hand"i "," "then shuffle"i
+      | "search your library for"i search_target "," "put it into your hand"i "," "then shuffle"i
+      | "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
+      | "search your library for"i search_target "," "put that card into your graveyard"i "," "then shuffle"i
+      | "creatures you control get"i stat_modifier "until end of turn"i
+      | "creatures you control gain"i ability_granted "until end of turn"i
+      | "target creature gains"i ability_granted "until end of turn"i
+      | "target creature gets"i stat_modifier "until end of turn"i
+      | "permanents you control gain"i ability_granted "until end of turn"i
+      | "instead"i "any number of target creatures you control gain"i ability_granted "until end of turn"i
+      | "attach it to target creature you control"i
+      | "that creature gains"i ability_granted "until end of turn"i
+      | "return target"i card_type "from your graveyard to the battlefield"i
+      | "return target"i card_type "card from your graveyard to your hand"i
+      | "return target"i card_type "card from your graveyard to the battlefield"i
       | "return"i target "to"i zone
       | "attach"i entity "to"i target
       | entity "gain"i ability_granted
@@ -462,6 +625,8 @@ effect: "create"i token
       | entity "deals"i NUMBER "damage to"i "each opponent"i
       | entity "deals"i NUMBER "damage to"i "target"i entity
       | entity "deals"i NUMBER "damage to"i "any target"i
+      | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
+      | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
       | entity "deals"i "damage equal to"i entity "to"i target
       | entity "deals"i "damage equal to its power to"i target
       | "counter target"i spell_type
@@ -554,6 +719,11 @@ conditional_effect: "if"i condition_clause "," effect
 
 // Create token effect
 create_token_effect: "create"i token
+                   | "create"i "a token that's a copy of target"i entity
+                   | "create"i "a token that's a copy of target"i entity "."? "If this spell was kicked"i "," "create five of those tokens instead"i
+                   | "create"i "a token that's a copy of target creature"i "."? "If this spell was kicked"i "," "create five of those tokens instead"i
+                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
+                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "Create five of those tokens instead"i
 
 // Search effect (more detailed than regular effect)
 search_effect: "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
@@ -562,6 +732,7 @@ search_effect: "search your library for"i search_target "," put_onto_battlefield
              | "search your library for"i search_target "," "shuffle"i "," "then put that card on top"i
              | "search your library for"i search_target "," "reveal it"i "," "and put it into your hand"i "." "Then shuffle your library"i
              | "search your library for"i search_target "," "shuffle your library"i "," "then put that card into your hand"i
+             | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
              | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "put them into your hand"i "," "then shuffle"i
              | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "shuffle your library"i "," "then put them on top in any order"i
 
@@ -599,23 +770,40 @@ token_description: NUMBER "/" NUMBER color? creature_type "creature token"i
                  | "Treasure token"i treasure_reminder?
                  | "Clue token"i clue_reminder?
                  | "Gold token"i gold_reminder?
+                 | "token that's a copy of"i entity
+                 | "number of"i NUMBER "/" NUMBER color? creature_type "creature tokens equal to"i entity
+                 | "number of"i NUMBER "/" NUMBER color? creature_type "creature tokens equal to other creatures you control named"i entity
+                 | "copy of target"i entity
                  | "copy of"i entity
                  | "token that's a copy of"i entity
                  | "token that's a copy of"i entity "except"i token_exception
 
+// Token exceptions
+token_exception: "it's"i token_exception_property
+               | "it has"i ability_granted
+               | "it's"i color
+               | "it has"i QUOTED_TEXT
+               | "it's"i permanent_type "in addition to its other types"i
+
+// Token exception properties
+token_exception_property: "a"i NUMBER "/" NUMBER creature_type
+                        | "a"i NUMBER "/" NUMBER color creature_type
+                        | "a"i color creature_type
 // Token reminders
 food_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
 treasure_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
 clue_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
 gold_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
 
-// Token exceptions
-token_exception: "it has"i ability_granted
-               | "it has"i QUOTED_TEXT
-               | "it's"i permanent_type "in addition to its other types"i
+// Token exception patterns have been consolidated into the token_exception rule
 
 // Quoted text (for token abilities)
 QUOTED_TEXT: "\"" /[^"]+/ "\""
+
+// Individual creature stat
+creature_stat: "power"i
+             | "toughness"i
+             | "mana value"i
 
 // Targets
 target: "target"i target_description
@@ -629,6 +817,10 @@ target: "target"i target_description
       | "target"i "opponent"i
       | "target"i "creature or player"i
       | "target"i "creature or planeswalker"i
+      | "target"i "player or planeswalker"i
+      | "target"i "creature or enchantment"i
+      | "target"i "creature or enchantment an opponent controls"i
+      | "target"i "noncreature spell"i
       | "target"i "artifact or enchantment"i
       | "each"i target_description
       | "each"i color target_description
@@ -890,9 +1082,7 @@ zone: "your hand"i
     | "the stack"i
     | "your sideboard"i
 
-// Damage types
-damage_type: "combat"i
-           | "noncombat"i
+// Damage types (definition moved to line 287)
 
 // Actions
 action: "attack"i
@@ -920,6 +1110,8 @@ entity: "you"i
       | "it"i
       | "~"i
       | "~f"i
+      | "enchanted creature"i
+      | "enchanted permanent"i
       | "creatures you control"i
       | "other creatures you control"i
       | "creatures your opponents control"i
@@ -993,8 +1185,11 @@ spell_type: "a spell"i
           | "an artifact spell"i
           | "an enchantment spell"i
           | "a planeswalker spell"i
+          | "a noncreature spell"i
+          | "an instant or sorcery spell"i
           | "a spell with mana value"i comparison NUMBER
           | "a"i color "spell"i
+          | "a" color permanent_type "spell"i
 
 // Creature types (common ones from the comprehensive rules)
 creature_type: "Cat"i

@@ -1,0 +1,21 @@
+You have been working on generating a Lark grammar (https://github.com/lark-parser/lark) using the Earley parser that can parse valid
+Magic: The Gathering rule texts.
+
+The grammar in cases/mtg/grammar.lark.
+
+To check how many cards out of the target set that the grammar can parse, you can call the driver from the top-level directory (grammargen/) using...
+
+python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/inputs.txt
+
+Instead of expanding the grammar to handle additional cards, what I'd like you to do is to refactor the grammar. There are many
+rules in the current grammar that were tailor made for particular cards, like...
+
+    | "Target"i entity "sacrifices"i "a creature of their choice"i
+    | "Target"i entity "sacrifices"i "a permanent of their choice"i
+    | "Target"i entity "sacrifices"i "a"i permanent_type "of their choice"i
+    | "Each"i entity "sacrifices"i "a creature of their choice"i
+    | "Each"i entity "sacrifices"i "a permanent of their choice"i
+    | "Each"i entity "sacrifices"i "a"i permanent_type "of their choice"i
+
+These could probably be consolidated. Please consider readability, complexity, and generalizability of the grammar
+when making your changes.
