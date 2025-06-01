@@ -26,6 +26,8 @@ python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/in
 
 This will report how many MTG cards in inputs.txt were parsed successfully. Your goal is to maximize this number without sacrificing grammar quality.
 
+Note you will need to install Lark for the script to work. You can install it using "pip lark install".
+
 🛠️ Sanity Check (Optional)
 To verify the parsing pipeline works as expected, try the a^n b^n c^n toy grammar:
 

@@ -30,6 +30,8 @@ python driver.py --grammar_file cases/mtg/grammar.lark --input_file cases/mtg/in
 
 This reports how many card texts from the input file were successfully parsed. The driver reports how many card texts in inputs.txt could be parsed without errors. This is your proxy for the grammar's coverage. Use it to compare before vs after refactoring.
 
+Note you will need to install Lark for the script to work. You can install it using "pip lark install".
+
 🛠️ Sanity Check (Optional)
 You can test whether the driver is working properly by using a known grammar for the a^n b^n c^n language:
 
