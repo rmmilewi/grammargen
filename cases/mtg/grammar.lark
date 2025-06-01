@@ -10,50 +10,60 @@ card_text: ability_with_period (NEWLINE ability_with_period)*
 ?ability_with_period: ability "."?
 
 // ==================== ABILITY TYPES ====================
-// Different types of abilities
-ability: keyword_ability
-       | activated_ability
-       | triggered_ability
-       | static_ability
-       | spell_cost_modification
-       | effect
-       | permanent_enters_ability
-       | as_enters_ability
-       | if_would_ability
-       | modal_ability
-       | empty_line
-       | keyword_list
-       | reminder_text_only
-       | enters_ability
-       | simple_effect
-       | identity_ability
-       | possessive_ability
-       | planeswalker_ability
+// Different types of abilities - grouped by category
+ability: // Core ability types
+       | keyword_ability      // Single-word abilities like Flying, Vigilance
+       | activated_ability    // Abilities with costs followed by effects
+       | triggered_ability    // When/Whenever/At triggered abilities
+       | static_ability       // Continuous effects
+       | modal_ability        // Choose one/more abilities
+       | if_would_ability     // Replacement effects
+
+       // Zone transition abilities
+       | enters_ability       // Abilities about entering the battlefield
+       | as_enters_ability    // "As this enters..." abilities
+
+       // Descriptive abilities
+       | identity_ability     // Abilities that define what something is
+       | possessive_ability   // Abilities that define characteristics
+
+       // Special ability types
+       | planeswalker_ability // Loyalty abilities
+       | spell_cost_modification // Abilities that modify spell costs
 
        // Mechanic-specific abilities
-       | ward_ability
-       | equip_ability
-       | land_ability
-       | crew_ability
-       | enchant_ability
-       | changeling_ability
-       | hexproof_from_ability
+       | ward_ability         // Ward mechanic
+       | equip_ability        // Equip mechanic
+       | land_ability         // Land mana abilities
+       | crew_ability         // Crew mechanic
+       | enchant_ability      // Enchant mechanic
+       | changeling_ability   // Changeling mechanic
+       | hexproof_from_ability // Hexproof from mechanic
 
-       // Named mechanics
-       | landfall_ability
-       | threshold_ability
-       | flashback_ability
-       | surveil_ability
-       | mill_ability
-       | raid_ability
-       | morbid_ability
-       | choose_one_ability
+       // Named keyword mechanics
+       | landfall_ability     // Landfall mechanic
+       | threshold_ability    // Threshold mechanic
+       | flashback_ability    // Flashback mechanic
+       | surveil_ability      // Surveil mechanic
+       | mill_ability         // Mill mechanic
+       | raid_ability         // Raid mechanic
+       | morbid_ability       // Morbid mechanic
+       | choose_one_ability   // Choose one mechanic
+
+       // Simple abilities and text
+       | effect               // General effects
+       | simple_effect        // Simple effect patterns
+       | keyword_list         // List of keywords
+       | reminder_text_only   // Just reminder text
+       | empty_line           // Empty line
 
 // ==================== KEYWORD ABILITIES ====================
 // Single word or phrase abilities
 keyword_ability: keyword reminder_text?
 
-keyword: "First strike"i
+// Keywords - grouped by category
+keyword: // Evergreen combat keywords
+       | "First strike"i
        | "Double strike"i
        | "Vigilance"i
        | "Menace"i
@@ -61,63 +71,87 @@ keyword: "First strike"i
        | "Reach"i
        | "Lifelink"i
        | "Deathtouch"i
+
+       // Evergreen non-combat keywords
        | "Hexproof"i
        | "Indestructible"i
        | "Flash"i
        | "Flying"i
        | "Haste"i
        | "Defender"i
+
+       // Keywords with parameters
        | "Protection"i protection_detail?
+       | "Ward"i ward_cost?
+       | "Kicker"i kicker_cost
+
+       // Set-specific keywords
        | "Prowess"i
        | "Threshold"i
-       | "Kicker"i kicker_cost
        | "Raid"i
        | "Morbid"i
        | "Landfall"i
-       | "Ward"i
-
-// Kicker cost
-kicker_cost: "{" mana_cost "}" kicker_reminder?
-          | "{" NUMBER "}" "{" color_symbol "}" kicker_reminder?
-          | "{" color_symbol "}" kicker_reminder?
-          | "{" NUMBER "}" kicker_reminder?
-          | "{" color_symbol "}" kicker_reminder?
-
-// Kicker reminder
-kicker_reminder: "(" "You may pay an additional"i mana_cost "as you cast this spell."i ")"
-               | "(" "You may pay an additional"i "{" NUMBER "}" "as you cast this spell."i ")"
-               | "(" "You may pay an additional"i "{" color_symbol "}" "as you cast this spell."i ")"
 
 // List of keywords separated by commas
 keyword_list: keyword ("," keyword)+ reminder_text?
 
 // Protection details
-protection_detail: "from" (color | "everything"i | permanent_type | "converted mana cost"i NUMBER)
+protection_detail: "from" protection_target
+
+// Protection targets
+protection_target: color
+                 | "everything"i
+                 | permanent_type
+                 | "converted mana cost"i NUMBER
+                 | "mana value"i NUMBER  // Updated terminology
+
+// Kicker cost - consolidated
+kicker_cost: "{" (mana_cost | NUMBER | color_symbol) "}" ("{" (NUMBER | color_symbol) "}")? kicker_reminder?
+
+// Kicker reminder - consolidated
+kicker_reminder: "(" "You may pay an additional"i (mana_cost | "{" NUMBER "}" | "{" color_symbol "}") "as you cast this spell."i ")"
 
 // ==================== ACTIVATED ABILITIES ====================
 // Abilities with cost: effect format
-activated_ability: cost ":" effect
-                 | "{" mana_cost "}" ":" effect
-                 | "{" mana_cost "}, {T}" ":" effect
-                 | "{" mana_cost "}, {T}, Sacrifice" sacrifice_target ":" effect
-                 | "{" NUMBER "}, {T}" ":" effect
-                 | "{" color_symbol "}, {T}" ":" effect
-                 | "{" NUMBER "}, {T}, Sacrifice" sacrifice_target ":" effect
-                 | "{" color_symbol "}, {T}, Sacrifice" sacrifice_target ":" effect
-                 | "{" NUMBER "}, {T}, Return" entity "to its owner's hand" ":" effect
+activated_ability: activation_cost ":" effect
+
+// Activation costs - consolidated
+activation_cost: cost
+               | mana_only_cost
+               | tap_cost
+               | sacrifice_cost
+               | return_cost
+
+// Simple mana cost
+mana_only_cost: "{" (mana_cost | NUMBER | color_symbol) "}"
+
+// Tap costs with mana
+tap_cost: mana_only_cost ", {T}"
+
+// Sacrifice costs
+sacrifice_cost: (mana_only_cost | tap_cost) ", Sacrifice" sacrifice_target
+
+// Return costs
+return_cost: "{" (NUMBER | color_symbol) "}, {T}, Return" entity "to its owner's hand"
 
 // ==================== TRIGGERED ABILITIES ====================
 // When/Whenever/At... trigger, effect
-triggered_ability: trigger_condition "," optional_may? effect
-                 | trigger_condition "," optional_may? search_effect
-                 | trigger_condition "," optional_may? draw_effect
-                 | trigger_condition "," optional_may? gain_life_effect
-                 | trigger_condition "," optional_may? conditional_effect
-                 | trigger_condition "," optional_may? create_token_effect
-                 | trigger_condition "," if_clause effect
-                 | trigger_condition "," optional_may? compound_effect
-                 | trigger_condition "," "if it was kicked"i "," sacrifice_ability
-                 | trigger_condition "," "that player loses 2 life"i
+triggered_ability: trigger_condition "," trigger_effect
+
+// Trigger effect types
+trigger_effect: optional_may? effect
+              | optional_may? specific_effect
+              | if_clause effect
+              | "if it was kicked"i "," sacrifice_ability
+              | "that player loses"i NUMBER "life"i
+
+// Specific effect types for triggered abilities
+specific_effect: search_effect
+               | draw_effect
+               | gain_life_effect
+               | conditional_effect
+               | create_token_effect
+               | compound_effect
 
 // Trigger conditions
 trigger_condition: "When"i when_clause
@@ -125,69 +159,94 @@ trigger_condition: "When"i when_clause
                  | "At"i at_clause
                  | "Raid"i "—"i raid_clause
 
-// When clauses
-when_clause: "this creature enters"i
+// When clauses - grouped by category
+when_clause: // Enters the battlefield
+           | "this creature enters"i
            | "this Equipment enters"i
            | "~ enters"i
-           | "~ or another nontoken" creature_type "you control enters"i
            | entity "enters the battlefield"i
            | entity "enters"i
+           | "~ or another nontoken" creature_type "you control enters"i
+
+           // Dies/graveyard
            | entity "dies"i
            | "this creature dies"i
+           | "~ dies"i
            | entity "is put into a graveyard from the battlefield"i
-           | "you do"i
+
+           // Spell-related
            | "you cast"i spell_type
            | "it was kicked"i
            | "this spell was kicked"i
-           | entity "enters with"i counter "on it"i
-           | entity "enters with"i NUMBER counter "on it"i
-           | entity "enters the battlefield with"i counter "on it"i
-           | entity "enters the battlefield with"i NUMBER counter "on it"i
-           | "~ dies"i
 
-// Whenever clauses
-whenever_clause: "you attack with"i NUMBER "or more creatures"i
-               | "you gain life"i
-               | "you gain life for the first time"i ("during each of your turns"i | "each turn"i)?
-               | "you draw"i ("your second card each turn"i | "a card"i | "cards"i)
-               | "you draw your second card each turn"i
+           // Counter-related
+           | entity "enters with"i counter_amount? counter "on it"i
+           | entity "enters the battlefield with"i counter_amount? counter "on it"i
+
+           // Miscellaneous
+           | "you do"i
+
+// Whenever clauses - grouped by category
+whenever_clause: // Combat-related
                | "this creature attacks"i
                | "~ attacks"i
                | entity "attacks"i
                | entity "blocks"i
                | entity "becomes blocked"i
                | entity "deals combat damage to"i entity
-               | "you cast"i spell_type
-               | "this creature or another"i entity "dies"i
-               | entity "or"i entity "dies"i
-               | entity "or another"i entity "dies"i
+               | "a creature deals combat damage to a player"i
+               | "this creature deals combat damage to a player"i
+               | "this creature attacks while you control a creature with power 4 or greater"i
+               | "you attack with"i NUMBER "or more creatures"i
+               | color creature_type "you control attacks"i
+               | "a" color creature_type "you control attacks"i
+
+               // Life gain
+               | "you gain life"i
+               | "you gain life for the first time"i life_gain_timing?
+
+               // Card draw
+               | "you draw"i draw_clause
+               | "you draw your second card each turn"i
+
+               // Enters battlefield
                | "a creature you control enters"i
                | entity "you control enters"i
-               | "an opponent casts"i spell_type
                | "another creature you control enters"i
                | "another"i creature_type "you control enters"i
                | "another nontoken"i creature_type "you control enters"i
-               | entity "you control dies"i
+
+               // Dies
                | entity "dies"i
-               | color creature_type "you control attacks"i
-               | "a" color creature_type "you control attacks"i
+               | entity "you control dies"i
+               | "this creature or another"i entity "dies"i
+               | entity "or"i entity "dies"i
+               | entity "or another"i entity "dies"i
                | "a creature an opponent controls dies"i
-               | "a creature deals combat damage to a player"i
-               | "this creature deals combat damage to a player"i
+               | "another nontoken creature dies"i
+
+               // Spell casting
+               | "you cast"i spell_type
+               | "an opponent casts"i spell_type
+
+               // Counter-related
                | "you put one or more"i counter "on"i entity
                | "you put one or more +1/+1 counters on"i entity
-               | "another nontoken creature dies"i
-               | "this creature attacks while you control a creature with power 4 or greater"i
 
-// At clauses
-at_clause: "the beginning of"i ("your"i | "each"i | "each player's"i | "each opponent's"i) phase_type
+// Life gain timing
+life_gain_timing: "during each of your turns"i | "each turn"i
+
+// Draw clause
+draw_clause: "your second card each turn"i | "a card"i | "cards"i
+
+// At clauses - beginning of phase/step
+at_clause: "the beginning of"i phase_owner phase_type
          | "the beginning of combat on your turn"i
          | "the beginning of your end step"i
          | "the beginning of the end step"i
 
-// Raid clause
-raid_clause: "When"i when_clause "," "if you attacked this turn"i
-           | "Whenever"i whenever_clause "," "if you attacked this turn"i
+// Phase owner
+phase_owner: "your"i | "each"i | "each player's"i | "each opponent's"i
 
 // Game phases
 phase_type: "upkeep"i
@@ -196,6 +255,10 @@ phase_type: "upkeep"i
           | "combat"i
           | "end step"i
           | "turn"i
+
+// Raid clause
+raid_clause: "When"i when_clause "," "if you attacked this turn"i
+           | "Whenever"i whenever_clause "," "if you attacked this turn"i
 
 // Optional may clause
 optional_may: "you may"i
@@ -206,32 +269,64 @@ if_clause: "if"i condition_clause ","
          | "if"i "this spell was kicked"i ","
 
 // ==================== STATIC ABILITIES ====================
-static_ability: "You have"i ability_granted
-              | entity "get"i stat_modifier
-              | entity "have"i ability_granted
-              | entity "can't"i action
-              | "Prevent all"i damage_type "damage that would be dealt to"i entity
-              | "Other"i creature_type "you control get"i stat_modifier
-              | "Other"i creature_type "you control get"i stat_modifier "and"i "have"i keyword
-              | "Other Angels you control get"i stat_modifier "and"i "have"i "lifelink"i
-              | entity "gets"i stat_modifier ("as long as"i condition_clause)?
-              | "Creatures you control"i "get"i stat_modifier "and"i "gain"i "indestructible"i "until end of turn"i
-              | "Creatures you control"i "get"i "+1/+0"i "and"i "gain"i "indestructible"i "until end of turn"i "."? reminder_text?
+// Static abilities - grouped by effect type
+static_ability: // Granting abilities
+              | entity_grant "have"i ability_granted
+              | entity_grant "gains"i ability_granted duration?
+              | entity_grant "gain"i ability_granted duration?
+              | "Creatures you control gain"i ability_granted duration? reminder_suffix?
+
+              // Stat modifications
+              | entity_grant "get"i stat_modifier stat_modifier_suffix?
+              | entity_grant "gets"i stat_modifier stat_modifier_suffix?
               | "Other creatures you control of the chosen type get"i stat_modifier
+
+              // Prevention effects
+              | "Prevent all"i damage_type? "damage that would be dealt to"i entity
+
+              // Restriction effects
+              | entity "can't"i action
+
+              // Conditional static abilities
               | "As long as"i condition_clause "," static_ability
               | "As long as"i condition_clause "," entity "gets"i stat_modifier
               | "As long as"i condition_clause "," entity "gains"i ability_granted
-              | "Creatures you control gain"i ability_granted "until end of turn"i "."? reminder_text?
+
+// Entity that is granted an ability or stat modification
+entity_grant: "You"
+            | entity
+            | "Other"i creature_type "you control"
+            | "Creatures you control"i
+
+// Optional suffix for stat modifiers
+stat_modifier_suffix: ("as long as"i condition_clause)?
+                    | "and"i ("have"i | "gain"i) ability_granted duration?
+
+// Optional reminder text suffix
+reminder_suffix: "."? reminder_text?
+
+// Duration for effects
+duration: "until end of turn"i | "until your next turn"i
 
 // ==================== SPELL COST MODIFICATIONS ====================
+// Cost modification for spells
 spell_cost_modification: "This spell costs"i cost_modifier
 
 // Cost modifiers
-cost_modifier: "{" NUMBER "}" "less to cast"i condition?
-             | "{" NUMBER "}" "more to cast"i condition?
+cost_modifier: "{" NUMBER "}" cost_direction condition?
 
-// ==================== PERMANENT ENTERS ABILITIES ====================
-// Consolidated rule for permanent enters abilities
+// Cost direction
+cost_direction: "less to cast"i | "more to cast"i
+
+// ==================== ENTERS ABILITIES ====================
+// Consolidated enters abilities
+enters_ability: // General enters ability
+              | entity "enters"i enters_location? enters_condition?
+              | "This creature enters"i enters_location? enters_condition?
+              | permanent_enters_ability
+              | entity "enters"i enters_location? counter_condition
+
+// Permanent enters ability (for lands and artifacts)
 permanent_enters_ability: permanent_self enters_condition_simple? "."?
 
 // Self-referential permanent
@@ -244,18 +339,6 @@ enters_condition_simple: "enters"i enters_location_simple? enters_with_counters?
 // Simplified enters location
 enters_location_simple: "the battlefield"i
 
-// Enters with counters
-enters_with_counters: "with"i counter_amount? counter_type counter_suffix
-
-// Counter suffix (singular or plural)
-counter_suffix: "counter on it"i | "counters on it"i
-
-// ==================== ENTERS ABILITIES ====================
-// General enters ability
-enters_ability: entity "enters"i enters_location? enters_condition?
-              | "This creature enters"i enters_location? enters_condition?
-              | entity "enters"i enters_location? "eight"i counter_type "counters on it if you cast it"i
-
 // Where the entity enters
 enters_location: "the battlefield"i enters_controller?
 
@@ -264,57 +347,102 @@ enters_controller: "under"i entity "control"i
 
 // Condition of entering (tapped, with counters, etc.)
 enters_condition: "tapped"i
-                | "with"i counter_amount counter counter_placement
-                | enters_controller? "with"i counter_amount counter counter_placement
+                | "with"i counter_amount? counter counter_placement
+                | enters_controller? "with"i counter_amount? counter counter_placement
                 | enters_controller? "tapped"i
                 | "a"i counter "on it"i
 
-// Counter amount (optional)
-?counter_amount: NUMBER | "three"i
+// Special counter condition
+counter_condition: "eight"i counter_type "counters on it if you cast it"i
+
+// Enters with counters
+enters_with_counters: "with"i counter_amount? counter_type counter_suffix
+
+// Counter suffix (singular or plural)
+counter_suffix: "counter on it"i | "counters on it"i
 
 // Counter placement
 counter_placement: "on it"i | "counters on it"i
 
+// Counter amount (optional)
+?counter_amount: NUMBER | "one"i | "two"i | "three"i | "four"i | "five"i | "six"i | "seven"i | "eight"i
+
 // ==================== AS ENTERS ABILITIES ====================
-as_enters_ability: "As"i entity "enters"i "," choose_effect
-                 | "As"i entity "enters the battlefield"i "," choose_effect
-                 | "As"i entity "enters the battlefield"i "," effect
-                 | "As"i entity "enters"i "," effect
+// Abilities that trigger as a permanent enters the battlefield
+as_enters_ability: "As"i entity enters_battlefield "," as_enters_effect
+
+// Enters battlefield phrase
+enters_battlefield: "enters"i | "enters the battlefield"i
+
+// Effect for as_enters_ability
+as_enters_effect: choose_effect | effect
 
 // Choose effect
-choose_effect: "choose"i choice_target
-             | "you may choose"i choice_target
+choose_effect: choose_verb choice_target
+
+// Choose verb
+choose_verb: "choose"i | "you may choose"i
 
 // Choice target
-choice_target: "a"i "color"i
-             | "a"i "creature type"i
-             | "a"i permanent_type "type"i
+choice_target: "a"i choice_type
+
+// Choice types
+choice_type: "color"i
+           | "creature type"i
+           | permanent_type "type"i
 
 // ==================== IF WOULD ABILITIES ====================
-if_would_ability: "If"i "~"i "would be put into a graveyard from anywhere"i "," replacement_effect
-                | "If"i entity "would" action "," replacement_effect
-                | "If"i "you would"i "gain life"i "," "you gain that much life plus 1 instead"i
-                | "If"i entity "would" "die"i "," replacement_effect
-                | "If"i entity "would" "be destroyed"i "," replacement_effect
-                | "If"i "damage would be dealt to"i entity "," replacement_effect
-                | "If"i entity "would" "deal damage"i "," replacement_effect
-                | "If a creature you control would deal damage to a permanent or player"i "," "it deals double that damage instead"i
-                | "If"i entity "would" "enter the battlefield"i "," replacement_effect
-                | "If you would gain life"i "," "you gain that much life plus 1 instead"i
-                | "If a source you control would deal damage to an opponent or a permanent an opponent controls"i "," "it deals double that damage instead"i
+// Replacement effects
+if_would_ability: "If"i would_condition "," replacement_effect
+
+// Would conditions
+would_condition: // Graveyard/death related
+               | "~"i "would be put into a graveyard from anywhere"i
+               | entity "would" "die"i
+               | entity "would" "be destroyed"i
+
+               // Damage related
+               | "damage would be dealt to"i entity
+               | entity "would" "deal damage"i
+               | "a creature you control would deal damage to a permanent or player"i
+               | "a source you control would deal damage to an opponent or a permanent an opponent controls"i
+
+               // Life gain related
+               | "you would"i "gain life"i
+               | "you would gain life"i
+
+               // Zone change related
+               | entity "would" "enter the battlefield"i
+
+               // Other actions
+               | entity "would" action
 
 // Replacement effect
-replacement_effect: "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
-                  | effect "instead"i "."?
-                  | entity action "instead"i "."?
+replacement_effect: // Library replacement
+                  | "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
+
+                  // Exile replacement
                   | "exile"i entity "instead"i "."?
+
+                  // Damage prevention
                   | "prevent"i "that"i "damage"i "."?
                   | "prevent"i NUMBER "of"i "that"i "damage"i "."?
                   | "that"i "damage"i "can't"i "be"i "prevented"i "."?
 
+                  // Life gain replacement
+                  | "you gain that much life plus"i NUMBER "instead"i
+
+                  // Damage doubling
+                  | "it deals double that damage instead"i
+
+                  // Generic replacements
+                  | effect "instead"i "."?
+                  | entity action "instead"i "."?
+
 // ==================== MODAL ABILITIES ====================
-// Consolidated modal ability structure
+// Modal abilities with choices
 modal_ability: modal_choice choice_separator NEWLINE? modal_options?
+             | choose_one_ability
 
 // Modal choice type
 modal_choice: "Choose one"i | "Choose one or more"i | "Choose two"i
@@ -326,22 +454,23 @@ modal_options: modal_option+
 modal_option: modal_bullet modal_effect NEWLINE?
 
 // Modal bullet point
-modal_bullet: "•"i
+modal_bullet: "•"i | BULLET
 
 // Modal effect types
-modal_effect: effect "."?
-            | entity "deals"i NUMBER "damage to target"i damage_target "."?
-            | entity "gains"i ability_granted duration? "."?
-            | entity "gain"i ability_granted duration? "."?
-            | "Target"i entity "gains"i ability_granted duration? "."?
-            | "Permanents you control gain"i ability_granted duration? "."?
-            | "Target creature gains"i ability_granted duration? "."?
+modal_effect: // General effects
+            | effect "."?
 
-// Duration for effects
-duration: "until end of turn"i | "until your next turn"i
+            // Damage effects
+            | entity "deals"i NUMBER "damage to target"i damage_target "."?
+
+            // Ability granting effects
+            | entity_grant ("gains"i | "gain"i) ability_granted duration? "."?
+            | "Target"i entity "gains"i ability_granted duration? "."?
+            | "Target creature gains"i ability_granted duration? "."?
+            | "Permanents you control gain"i ability_granted duration? "."?
 
 // ==================== CHOOSE ONE ABILITY ====================
-// Choose one ability
+// Choose one ability (triggered version)
 choose_one_ability: trigger_prefix? modal_choice choice_separator? choose_one_options?
 
 // Trigger prefix for choose_one_ability
@@ -354,46 +483,71 @@ choose_one_options: NEWLINE choose_one_option+
 choose_one_option: BULLET effect NEWLINE?
 
 // Choice separator
-choice_separator: "—"
-                | "--"
-                | "-"
-                | ":"
+choice_separator: "—" | "--" | "-" | ":"
 
-// ==================== IDENTITY ABILITY ====================
+// ==================== CHARACTERISTIC DEFINING ABILITIES ====================
+// Abilities that define characteristics of a permanent
+
 // Possessive ability (for handling ~'s power and toughness)
 possessive_ability: entity APOSTROPHE "s" possessive_property
 
-// Possessive properties
-possessive_property: "power and toughness are each equal to" entity
-                   | "power and toughness are each equal to the number of" entity "you control"
-                   | "power is equal to" entity
-                   | "toughness is equal to" entity
-                   | "power is equal to the number of" entity "you control"
-                   | "toughness is equal to the number of" entity "you control"
-                   | "power is equal to your life total"
-                   | "toughness is equal to your life total"
-                   | "power is equal to" NUMBER "plus the number of" entity "you control"
-                   | "toughness is equal to" NUMBER "plus the number of" entity "you control"
+// Possessive properties - grouped by type
+possessive_property: // Power and toughness together
+                   | "power and toughness are each equal to" power_toughness_reference
+
+                   // Power only
+                   | "power is equal to" power_reference
+
+                   // Toughness only
+                   | "toughness is equal to" toughness_reference
+
+// Power and toughness reference
+power_toughness_reference: entity
+                         | "the number of" entity "you control"
+
+// Power reference
+power_reference: entity
+               | "the number of" entity "you control"
+               | "your life total"
+               | NUMBER "plus the number of" entity "you control"
+
+// Toughness reference
+toughness_reference: entity
+                   | "the number of" entity "you control"
+                   | "your life total"
+                   | NUMBER "plus the number of" entity "you control"
 
 // Identity ability
-identity_ability: entity "is" identity_description
-                | entity "becomes" identity_description
+identity_ability: entity identity_verb identity_description
 
-// Identity descriptions
-identity_description: "the chosen type in addition to its other types"
+// Identity verb
+identity_verb: "is" | "becomes"
+
+// Identity descriptions - grouped by type
+identity_description: // Type changing
+                    | "the chosen type in addition to its other types"
                     | "a" permanent_type "in addition to its other types"
+
+                    // Color changing
                     | color "in addition to its other colors"
+
+                    // Copy effects
                     | "a copy of" entity
+
+                    // Creature transformation
                     | "a" NUMBER "/" NUMBER color? creature_type
                     | "a" NUMBER "/" NUMBER color? creature_type "with" ability_granted
                     | "a" NUMBER "/" NUMBER color? creature_type "until end of turn"
 
 // ==================== MECHANIC-SPECIFIC ABILITIES ====================
+// ===== WARD =====
 // Ward ability
-ward_ability: "Ward"i "—" ward_cost
-            | "Ward"i ward_cost ward_reminder?
+ward_ability: "Ward"i ward_separator ward_cost ward_reminder?
 
-// Ward costs
+// Ward separator
+ward_separator: "—" | " "
+
+// Ward costs - consolidated
 ward_cost: mana_cost
          | "Pay" NUMBER "life"i
          | "Discard a card"i
@@ -405,85 +559,113 @@ ward_cost: mana_cost
 ward_reminder: "(" "Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player"i ward_payment "."? ")"
 
 // Ward payment
-ward_payment: "pays"i "{" NUMBER "}"
-            | "pays"i NUMBER "life"
+ward_payment: "pays"i ("{" NUMBER "}" | NUMBER "life")
 
+// ===== CHANGELING =====
 // Changeling ability
 changeling_ability: "Changeling"i changeling_reminder?
 
 // Changeling reminder
 changeling_reminder: "(" "This card is every creature type." ")"
 
+// ===== HEXPROOF FROM =====
 // Hexproof from ability
 hexproof_from_ability: "Hexproof from"i color hexproof_from_reminder?
 
 // Hexproof from reminder
 hexproof_from_reminder: "(" "This creature can't be the target of"i color "spells or abilities your opponents control." ")"
 
+// ===== CREW =====
 // Crew ability
 crew_ability: "Crew"i NUMBER crew_reminder?
 
 // Crew reminder
 crew_reminder: "("i "Tap any number of creatures you control with total power"i NUMBER "or more"i ":" "This Vehicle becomes an artifact creature until end of turn."i ")"i
 
+// ===== EQUIP =====
 // Equip ability
 equip_ability: "Equip"i equip_cost reminder_text?
 
-// Equip cost
+// Equip cost - consolidated
 equip_cost: mana_cost
           | "{" mana_cost "}" "(" mana_cost ":" equip_reminder ")"
 
 // Equip reminder
 equip_reminder: "Attach to target creature you control. Equip only as a sorcery."i
 
+// ===== ENCHANT =====
 // Enchant ability
 enchant_ability: "Enchant"i enchant_target
-               | "Enchanted"i enchant_target "gets"i stat_modifier ("and has"i ability_granted)?
-               | "Enchanted"i enchant_target "gets"i stat_modifier ("and gains"i ability_granted)?
-               | "Enchanted"i "creature"i "gets"i stat_modifier "and"i "gains"i keyword "."? reminder_text?
+               | "Enchanted"i enchant_target enchanted_effect
 
-// Enchant target
-enchant_target: "creature"i
+// Enchanted effect
+enchanted_effect: "gets"i stat_modifier enchanted_suffix?
+                | "gets"i stat_modifier "and"i ("has"i | "gains"i) (ability_granted | keyword) reminder_suffix?
+
+// Enchanted suffix
+enchanted_suffix: ("and has"i | "and gains"i) ability_granted
+
+// Enchant target - grouped by type
+enchant_target: // Basic permanent types
+              | "creature"i
               | "player"i
               | "permanent"i
               | "land"i
               | "artifact"i
               | "enchantment"i
               | "planeswalker"i
+
+              // Type variations
               | permanent_type
               | color permanent_type
+
+              // Combined types
               | "creature or planeswalker"i
               | "creature or player"i
               | "artifact or enchantment"i
+
+              // Qualified types
               | "creature with"i ability_granted
               | "creature with"i stat_condition
 
 // Stat condition
-stat_condition: "power"i comparison_operator NUMBER
-              | "toughness"i comparison_operator NUMBER
-              | "mana value"i comparison_operator NUMBER
+stat_condition: stat_condition_type comparison_operator NUMBER
+
+// Creature stats for stat conditions
+stat_condition_type: "power"i | "toughness"i | "mana value"i
 
 // Comparison operators
-comparison_operator: "greater than"i
+comparison_operator: // Text operators
+                   | "greater than"i
                    | "less than"i
                    | "equal to"i
                    | "greater than or equal to"i
                    | "less than or equal to"i
-                   | ">"
-                   | "<"
-                   | "="
-                   | ">="
-                   | "<="
 
+                   // Symbol operators
+                   | ">" | "<" | "=" | ">=" | "<="
+
+// ===== LAND ABILITIES =====
 // Land abilities
-land_ability: "{T}" ":" "Add" mana_symbol ("or" mana_symbol)*
-            | "{T}" ":" "Add" "{" color_symbol "}" ("{" color_symbol "}")*
-            | "{T}" ":" "Add" "one mana of any color" "."?
-            | "{T}" ":" "Add" "three mana of any one color" "."?
-            | "{T}" ":" "Add" "{C}{C}" "."?
-            | "{" NUMBER "}" "," "{T}" "," land_action ":" effect
-            | "{" NUMBER "}" "," "{T}" "," "Sacrifice this artifact" ":" effect
-            | "{" NUMBER "}" "," "{T}" ":" effect
+land_ability: // Basic mana abilities
+            | "{T}" ":" "Add" mana_production
+
+            // Activated abilities
+            | "{" NUMBER "}" "," "{T}" land_activation_suffix? ":" effect
+
+// Mana production
+mana_production: // Single mana
+               | mana_symbol ("or" mana_symbol)*
+               | "{" color_symbol "}" ("{" color_symbol "}")*
+               | "{C}{C}" "."?
+
+               // Any mana
+               | "one mana of any color" "."?
+               | "three mana of any one color" "."?
+
+// Land activation suffix
+land_activation_suffix: "," land_action
+                      | "," "Sacrifice this artifact"
 
 // Land actions
 land_action: "Return this land to its owner's hand"i
@@ -491,105 +673,245 @@ land_action: "Return this land to its owner's hand"i
            | "Tap another untapped land you control"i
 
 // ==================== NAMED MECHANIC ABILITIES ====================
+
+// ===== LANDFALL =====
 // Landfall ability
 landfall_ability: "Landfall"i "—"i landfall_effect
 
 // Landfall effect
-landfall_effect: "Whenever a land you control enters"i "," optional_may? effect
-               | "Whenever a land you control enters"i "," optional_may? choose_one_ability
-               | "Whenever a land you control enters"i "," optional_may? compound_effect
-               | "Whenever a land enters the battlefield under your control"i "," optional_may? effect
+landfall_effect: landfall_trigger "," landfall_resolution
 
+// Landfall trigger
+landfall_trigger: "Whenever a land you control enters"i
+                | "Whenever a land enters the battlefield under your control"i
+
+// Landfall resolution
+landfall_resolution: optional_may? (effect | choose_one_ability | compound_effect)
+
+// ===== THRESHOLD =====
 // Threshold ability
 threshold_ability: "Threshold"i "—"i threshold_effect
 
-// Threshold effect
-threshold_effect: entity "gains"i ability_granted "as long as there are seven or more cards in your graveyard"i
-                | "This creature gets"i stat_modifier "as long as there are seven or more cards in your graveyard"i
-                | "Whenever this creature attacks"i "," "if there are seven or more cards in your graveyard"i "," effect
-                | "if you attacked this turn"i "," "look at the top three cards of your library"i "." "You may put one of those cards back on top of your library"i "." "Put the rest into your graveyard"i
-                | "Whenever"i entity "attacks"i "," "if there are seven or more cards in your graveyard"i "," effect
+// Threshold condition
+threshold_condition: "as long as there are seven or more cards in your graveyard"i
+                   | "if there are seven or more cards in your graveyard"i
 
+// Threshold effect - grouped by type
+threshold_effect: // Static effects
+                | entity "gains"i ability_granted threshold_condition
+                | "This creature gets"i stat_modifier threshold_condition
+
+                // Triggered effects
+                | "Whenever this creature attacks"i "," threshold_condition "," effect
+                | "Whenever"i entity "attacks"i "," threshold_condition "," effect
+
+                // Special effects
+                | "if you attacked this turn"i "," threshold_special_effect
+
+// Threshold special effect
+threshold_special_effect: "look at the top three cards of your library"i "." "You may put one of those cards back on top of your library"i "." "Put the rest into your graveyard"i
+
+// ===== FLASHBACK =====
 // Flashback ability
 flashback_ability: "Flashback"i flashback_cost flashback_reminder?
 
-// Flashback cost
-flashback_cost: mana_cost
-              | "{" mana_cost "}"
+// Flashback cost - consolidated
+flashback_cost: mana_cost | "{" mana_cost "}"
 
 // Flashback reminder
-flashback_reminder: "(" "You may cast this card from your graveyard for its flashback cost. Then exile it."i ")"
-                  | "(" "You may cast that card from your graveyard for its flashback cost. Then exile it."i ")"
-                  | "(" reminder_text ")"
+flashback_reminder: "(" flashback_reminder_text ")"
 
+// Flashback reminder text
+flashback_reminder_text: "You may cast this card from your graveyard for its flashback cost. Then exile it."i
+                       | "You may cast that card from your graveyard for its flashback cost. Then exile it."i
+                       | reminder_text
+
+// ===== SURVEIL =====
 // Surveil ability
-surveil_ability: "Surveil"i NUMBER surveil_reminder?
-               | "{T}"i ":" "Surveil"i NUMBER surveil_reminder?
-               | "Whenever you gain life for the first time each turn"i "," "surveil"i NUMBER surveil_reminder?
+surveil_ability: surveil_standalone
+               | surveil_activated
+               | surveil_triggered
+
+// Standalone surveil
+surveil_standalone: "Surveil"i NUMBER surveil_reminder?
+
+// Activated surveil
+surveil_activated: "{T}"i ":" "Surveil"i NUMBER surveil_reminder?
+
+// Triggered surveil
+surveil_triggered: "Whenever you gain life for the first time each turn"i "," "surveil"i NUMBER surveil_reminder?
 
 // Surveil reminder
-surveil_reminder: "(" "Look at the top"i NUMBER "cards of your library"i "," "then put any number of them into your graveyard and the rest on top of your library in any order"i "."? ")"
-                | "(" reminder_text ")"
+surveil_reminder: "(" surveil_reminder_text ")"
 
+// Surveil reminder text
+surveil_reminder_text: "Look at the top"i NUMBER "cards of your library"i "," "then put any number of them into your graveyard and the rest on top of your library in any order"i "."?
+                     | reminder_text
+
+// ===== MILL =====
 // Mill ability
-mill_ability: "Mill"i NUMBER "cards"i mill_reminder?
-            | entity "mills"i NUMBER "cards"i mill_reminder?
-            | "Mill three cards"i "," "then return an instant or sorcery card from your graveyard to your hand"i
+mill_ability: mill_standalone
+            | mill_target
+            | mill_compound
+
+// Standalone mill
+mill_standalone: "Mill"i NUMBER "cards"i mill_reminder?
+
+// Target mill
+mill_target: entity "mills"i NUMBER "cards"i mill_reminder?
+
+// Compound mill effect
+mill_compound: "Mill three cards"i "," "then return an instant or sorcery card from your graveyard to your hand"i
 
 // Mill reminder
-mill_reminder: "(" "Put the top"i NUMBER "cards of your library into your graveyard"i "."? ")"
-             | "(" reminder_text ")"
+mill_reminder: "(" mill_reminder_text ")"
 
+// Mill reminder text
+mill_reminder_text: "Put the top"i NUMBER "cards of your library into your graveyard"i "."?
+                  | reminder_text
+
+// ===== RAID =====
 // Raid ability
 raid_ability: "Raid"i "—"i raid_effect
 
-// Raid effect
-raid_effect: "When"i entity "enters"i "," "if you attacked this turn"i "," effect
-           | "This creature enters"i "a"i counter "on it if you attacked this turn"i
-           | "When this creature enters"i "," "if you attacked this turn"i "," entity "deals"i NUMBER "damage to any target"i
-           | "At the beginning of your end step"i "," "if you attacked this turn"i "," effect
+// Raid condition
+raid_condition: "if you attacked this turn"i
 
+// Raid effect - grouped by type
+raid_effect: // Enters battlefield effects
+           | "When"i entity "enters"i "," raid_condition "," effect
+           | "When this creature enters"i "," raid_condition "," entity "deals"i NUMBER "damage to any target"i
+           | "This creature enters"i "a"i counter "on it if you attacked this turn"i
+
+           // End step effects
+           | "At the beginning of your end step"i "," raid_condition "," effect
+
+// ===== MORBID =====
 // Morbid ability
 morbid_ability: "Morbid"i "—"i morbid_effect
 
-// Morbid effect
-morbid_effect: "When this creature enters"i "," "target creature an opponent controls gets"i stat_modifier "until end of turn"i "." "If a creature died this turn"i "," "that creature gets"i stat_modifier "instead"i
-             | "At the beginning of each end step"i "," "if a creature died this turn"i "," effect
-             | "At the beginning of your end step"i "," "if a creature died this turn"i "," effect
+// Morbid condition
+morbid_condition: "if a creature died this turn"i
+
+// Morbid effect - grouped by type
+morbid_effect: // Enters battlefield effects
+             | "When this creature enters"i "," morbid_target_effect
+
+             // End step effects
+             | "At the beginning of each end step"i "," morbid_condition "," effect
+             | "At the beginning of your end step"i "," morbid_condition "," effect
+
+// Morbid target effect
+morbid_target_effect: "target creature an opponent controls gets"i stat_modifier "until end of turn"i "." morbid_condition "," "that creature gets"i stat_modifier "instead"i
 
 // ==================== PLANESWALKER ABILITIES ====================
-// Planeswalker ability
+// Planeswalker ability (one or more loyalty abilities)
 planeswalker_ability: loyalty_ability+
 
 // Loyalty ability
 loyalty_ability: loyalty_cost ":" planeswalker_effect
 
 // Loyalty cost
-loyalty_cost: "[" "+" NUMBER "]"
-            | "[" "−" NUMBER "]"
-            | "[" "-" NUMBER "]"
-            | "[0]"
+loyalty_cost: "[" loyalty_value "]"
 
-// Planeswalker effect
-planeswalker_effect: effect
-                   | "Add"i mana_symbol mana_symbol mana_symbol "."? exile_top_effect
+// Loyalty value
+loyalty_value: "+" NUMBER  // Positive loyalty
+             | "−" NUMBER  // Negative loyalty (en dash)
+             | "-" NUMBER  // Negative loyalty (hyphen)
+             | "0"         // Zero loyalty
+
+// Planeswalker effect types
+planeswalker_effect: // General effects
+                   | effect
+
+                   // Token creation
                    | "Create"i token
+
+                   // Mana and exile effects
+                   | "Add"i mana_symbol mana_symbol mana_symbol "."? exile_top_effect
+
+                   // Damage effects
                    | entity "deals"i NUMBER "damage divided as you choose among any number of target"i entity
+
+                   // Ability granting effects
                    | "Up to one target creature"i "you control"i? "gains"i ability_granted "this turn"i "."? effect
+
+                   // Emblem effects
                    | "You get an emblem with"i QUOTED_TEXT
 
 // Exile top effect
 exile_top_effect: "Exile the top"i NUMBER "cards of your library"i "." "Choose one"i "." "You may play that card this turn"i
 
+// ==================== EFFECTS ====================
+// Effects - main categories
+effect: // Creation effects
+      | create_effect
+
+      // Card manipulation effects
+      | draw_effect
+      | discard_effect
+      | search_effect
+      | shuffle_effect
+
+      // Life and damage effects
+      | life_change_effect
+      | damage_effect
+      | prevent_effect
+
+      // Permanent manipulation effects
+      | destroy_effect
+      | exile_effect
+      | return_effect
+      | tap_effect
+      | transform_effect
+      | modify_creature_effect
+      | put_counter_effect
+      | attach_effect
+      | sacrifice_effect
+
+      // Spell manipulation effects
+      | counter_effect
+      | copy_effect
+
+      // Zone change effects
+      | enters_effect
+
+      // Keyword action effects
+      | mill_effect
+      | surveil_effect
+
+      // Complex effects
+      | conditional_effect
+      | compound_effect
+      | may_effect
+
+      // Simple effects
+      | simple_effect
+
 // ==================== SIMPLE EFFECTS ====================
-// Simple effect
-simple_effect: entity "deals"i damage_amount "to"i damage_target
+// Simple effect patterns
+simple_effect: // Damage patterns
+             | entity "deals"i damage_amount "to"i damage_target
+
+             // Sacrifice patterns
              | sacrifice_pattern
+
+             // Information patterns
              | reveal_effect
+
+             // Mill patterns
              | mill_pattern
+
+             // Destruction patterns
              | destroy_pattern
+
+             // Discard patterns
              | discard_pattern
+
+             // Control patterns
              | control_effect
+
+             // Target change patterns
              | change_target_effect
 
 // Damage amount
@@ -609,20 +931,26 @@ damage_target: target
 // Change target effect
 change_target_effect: "Change the target of target spell or ability with a single target"i
 
-// Sacrifice pattern (specific pattern for simple_effect)
+// Sacrifice pattern
 sacrifice_pattern: entity "sacrifices"i sacrifice_target
 
 // Reveal effect
 reveal_effect: entity "reveals"i entity
-             | "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
+             | library_reveal_effect
 
-// Mill pattern (specific pattern for simple_effect)
+// Library reveal effect
+library_reveal_effect: "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
+
+// Mill pattern
 mill_pattern: entity "mills"i NUMBER "cards"i
 
-// Destroy pattern (specific pattern for simple_effect)
-destroy_pattern: "Destroy target"i permanent_type ("or"i permanent_type)? "an opponent controls"i?
+// Destroy pattern
+destroy_pattern: "Destroy target"i permanent_type_target "an opponent controls"i?
 
-// Discard pattern (specific pattern for simple_effect)
+// Permanent type target
+permanent_type_target: permanent_type ("or"i permanent_type)?
+
+// Discard pattern
 discard_pattern: entity "discards"i discard_target
 
 // Discard target
@@ -634,55 +962,34 @@ discard_target: NUMBER? "card"i NUMBER?
 // Control effect
 control_effect: entity "gains control of"i target
 
-// ==================== EFFECTS ====================
-// Effects
-effect: create_effect
-      | draw_effect
-      | life_change_effect
-      | damage_effect
-      | destroy_effect
-      | exile_effect
-      | search_effect
-      | modify_creature_effect
-      | return_effect
-      | attach_effect
-      | prevent_effect
-      | sacrifice_effect
-      | discard_effect
-      | shuffle_effect
-      | tap_effect
-      | transform_effect
-      | counter_effect
-      | copy_effect
-      | enters_effect
-      | mill_effect
-      | surveil_effect
-      | put_counter_effect
-      | conditional_effect
-      | compound_effect
-      | may_effect
-
+// ==================== SPECIFIC EFFECT TYPES ====================
 // Create effect
 create_effect: "create"i token
-             | "create"i "a token that's a copy of target"i entity ("."? "If this spell was kicked"i "," "create five of those tokens instead"i)?
-             | "create a token that's a copy of"i entity
+             | "create"i token_copy
+
+// Token copy
+token_copy: "a token that's a copy of target"i entity token_copy_suffix?
+          | "a token that's a copy of"i entity
+
+// Token copy suffix
+token_copy_suffix: "."? "If this spell was kicked"i "," "create five of those tokens instead"i
 
 // Draw effect
-draw_effect: "draw"i NUMBER? "card"i NUMBER?
-           | "draw"i NUMBER "cards"i
-           | "you draw"i NUMBER "cards"i
-           | "you draw"i NUMBER "card"i
+draw_effect: draw_verb NUMBER? "card"i NUMBER?
+           | draw_verb NUMBER "cards"i
            | "you draw a card and you lose"i NUMBER "life"i
 
+// Draw verb
+draw_verb: "draw"i | "you draw"i
+
 // Life change effect
-life_change_effect: "gain"i NUMBER "life"i
-                  | "lose"i NUMBER "life"i
-                  | "you gain"i NUMBER "life"i
-                  | "you lose"i NUMBER "life"i
+life_change_effect: life_change_verb NUMBER "life"i
                   | "each opponent loses"i NUMBER "life"i
-                  | entity "gains"i life_amount
-                  | entity "loses"i life_amount
+                  | entity life_change_verb life_amount
                   | "that player"i "loses"i life_amount
+
+// Life change verb
+life_change_verb: "gain"i | "lose"i | "gains"i | "loses"i | "you gain"i | "you lose"i
 
 // Life amount
 life_amount: NUMBER "life"i
