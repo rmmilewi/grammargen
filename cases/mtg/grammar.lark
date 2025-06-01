@@ -141,10 +141,13 @@ comparison_operator: "greater than"i
                    | "<="
 
 // Landfall ability
-landfall_ability: "Landfall"i "—"i "Whenever a land you control enters"i "," optional_may? effect
-                | "Landfall"i "—"i "Whenever a land you control enters"i "," optional_may? choose_one_ability
-                | "Landfall"i "—"i "Whenever a land you control enters"i "," optional_may? compound_effect
-                | "Landfall"i "—"i "Whenever a land enters the battlefield under your control"i "," optional_may? effect
+landfall_ability: "Landfall"i "—"i landfall_effect
+
+// Landfall effect
+landfall_effect: "Whenever a land you control enters"i "," optional_may? effect
+               | "Whenever a land you control enters"i "," optional_may? choose_one_ability
+               | "Whenever a land you control enters"i "," optional_may? compound_effect
+               | "Whenever a land enters the battlefield under your control"i "," optional_may? effect
 
 // Modal ability
 // Refactored to improve structure and reduce duplication
@@ -422,17 +425,14 @@ morbid_effect: "When this creature enters"i "," "target creature an opponent con
 
 // Simple effect
 // Refactored to group similar patterns and reduce duplication
-simple_effect: damage_effect
-             | sacrifice_effect
+simple_effect: entity "deals"i damage_amount "to"i damage_target
+             | sacrifice_pattern
              | reveal_effect
-             | mill_effect
-             | destroy_effect
-             | discard_effect
+             | mill_pattern
+             | destroy_pattern
+             | discard_pattern
              | control_effect
              | change_target_effect
-
-// Damage effect
-damage_effect: entity "deals"i damage_amount "to"i damage_target
 
 // Damage amount
 damage_amount: NUMBER "damage"i
@@ -451,21 +451,21 @@ damage_target: target
 // Change target effect
 change_target_effect: "Change the target of target spell or ability with a single target"i
 
-// Sacrifice effect
-sacrifice_effect: entity "sacrifices"i sacrifice_target
+// Sacrifice pattern (specific pattern for simple_effect)
+sacrifice_pattern: entity "sacrifices"i sacrifice_target
 
 // Reveal effect
 reveal_effect: entity "reveals"i entity
              | "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
 
-// Mill effect
-mill_effect: entity "mills"i NUMBER "cards"i
+// Mill pattern (specific pattern for simple_effect)
+mill_pattern: entity "mills"i NUMBER "cards"i
 
-// Destroy effect
-destroy_effect: "Destroy target"i permanent_type ("or"i permanent_type)? "an opponent controls"i?
+// Destroy pattern (specific pattern for simple_effect)
+destroy_pattern: "Destroy target"i permanent_type ("or"i permanent_type)? "an opponent controls"i?
 
-// Discard effect
-discard_effect: entity "discards"i discard_target
+// Discard pattern (specific pattern for simple_effect)
+discard_pattern: entity "discards"i discard_target
 
 // Discard target
 discard_target: NUMBER? "card"i NUMBER?
@@ -732,168 +732,238 @@ condition_clause: "you control"i entity
                 | "you control a creature with power 4 or greater"i
 
 // Effects
-effect: "create"i token
-      | "create"i "a token that's a copy of target"i entity "."? "If this spell was kicked"i "," "create five of those tokens instead"i
-      | "put"i counter "on"i target
-      | "draw"i NUMBER? "card"i NUMBER?
-      | "gain"i NUMBER "life"i
-      | "lose"i NUMBER "life"i
-      | "deal"i NUMBER "damage to"i target
-      | "deal"i NUMBER "damage to each"i target_description
-      | "destroy"i target
-      | "destroy all"i target_description
-      | "exile"i target
-      | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i "." "You lose life equal to that permanent's mana value"i
-      | "exile all"i target_description
-      | "search your library for"i search_target "," "reveal it"i "," "put it into your hand"i "," "then shuffle"i
-      | "search your library for"i search_target "," "put it into your hand"i "," "then shuffle"i
-      | "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
-      | "search your library for"i search_target "," "put that card into your graveyard"i "," "then shuffle"i
-      | "creatures you control get"i stat_modifier "until end of turn"i
-      | "creatures you control gain"i ability_granted "until end of turn"i
-      | "target creature gains"i ability_granted "until end of turn"i
-      | "target creature gets"i stat_modifier "until end of turn"i
-      | "permanents you control gain"i ability_granted "until end of turn"i
-      | "instead"i "any number of target creatures you control gain"i ability_granted "until end of turn"i
-      | "attach it to target creature you control"i
-      | "that creature gains"i ability_granted "until end of turn"i
-      | "return target"i card_type "from your graveyard to the battlefield"i
-      | "return target"i card_type "card from your graveyard to your hand"i
-      | "return target"i card_type "card from your graveyard to the battlefield"i
-      | "return"i target "to"i zone
-      | "attach"i entity "to"i target
-      | entity "gain"i ability_granted
-      | entity "get"i stat_modifier "until end of turn"i?
-      | "prevent"i NUMBER? "damage"i
-      | "prevent all damage that would be dealt to"i target "this turn"i
-      | "prevent all damage that would be dealt"i "this turn"i
-      | "sacrifice"i sacrifice_target
-      | "discard"i NUMBER? "card"i NUMBER?
-      | "search your library for"i search_target
+// Refactored to group similar patterns and reduce duplication
+effect: create_effect
+      | draw_effect
+      | life_change_effect
+      | damage_effect
+      | destroy_effect
+      | exile_effect
       | search_effect
-      | "shuffle"i
-      | "shuffle your library"i
-      | "tap"i target
-      | "untap"i target
-      | "transform"i target
-      | "That creature gains"i ability_granted "until end of turn"i
-      | "Equipped creature"i "gets"i stat_modifier
-      | "Equipped creature"i "has"i ability_granted
-      | "you draw a card and you lose"i NUMBER "life"i
-      | entity "is"i entity "in addition to its other types"i
-      | "draw"i NUMBER "cards"i
-      | target "gets"i stat_modifier "until end of turn"i
-      | target "fights"i target
-      | "reveal"i entity
-      | "reveal the top"i NUMBER "cards of your library"i
-      | "look at the top"i NUMBER "cards of your library"i
-      | "counter"i "target"i "spell"i
-      | "counter"i "target"i card_type "spell"i
-      | "counter"i "target"i "spell or ability"i
-      | "copy"i "target"i "spell"i
-      | "copy"i "target"i card_type "spell"i
-      | "if you do"i "," effect
-      | "if you control ten or more Gates with different names"i "," "you win the game"i
-      | "you may draw"i NUMBER? "card"i NUMBER?
-      | "destroy all"i entity
-      | "destroy all"i color entity
-      | "destroy target"i entity "or"i entity
-      | entity "deals"i NUMBER "damage to"i target
-      | entity "deals"i NUMBER "damage to"i "each"i entity
-      | entity "deals"i NUMBER "damage to"i "each opponent"i
-      | entity "deals"i NUMBER "damage to"i "target"i entity
-      | entity "deals"i NUMBER "damage to"i "any target"i
-      | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
-      | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
-      | entity "deals"i "damage equal to"i entity "to"i target
-      | entity "deals"i "damage equal to its power to"i target
-      | "counter target"i spell_type
-      | "counter"i entity
-      | "copy"i entity
-      | "copy target"i spell_type
-      | "enters"i "with"i counter "on it"i
-      | "enters"i "with"i NUMBER counter "on it"i
-      | "enters"i "tapped"i
-      | "enters"i "the battlefield"i
-      | "enters"i "the battlefield tapped"i
-      | "enters"i "the battlefield with"i counter "on it"i
-      | "enters"i "the battlefield with"i NUMBER counter "on it"i
-      | "enters"i "the battlefield under"i entity "control"i
-      | "enters"i "the battlefield under"i entity "control with"i counter "on it"i
-      | "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
-      | "enters"i "the battlefield under"i entity "control tapped"i
-      | "sacrifices"i sacrifice_target
-      | "reveals"i entity
-      | "mills"i NUMBER "cards"i
-      | "discards"i NUMBER? "card"i NUMBER?
-      | "discards"i NUMBER "cards"i
-      | "discards"i "their hand"i
-      | "discards"i "a card of their choice"i
-      | "gains control of"i target
-      | "gains"i NUMBER "life"i
-      | "loses"i NUMBER "life"i
-      | "mill"i NUMBER "cards"i
-      | "surveil"i NUMBER
-      | "counter target"i spell_type
-      | "look at the top"i NUMBER "cards of your library"i
-      | "put a"i counter_type "counter on"i entity
-      | "put"i NUMBER counter_type "counters on"i entity
-      | "create a token that's a copy of"i entity
-      | "each opponent discards a card"i
-      | "each opponent loses"i NUMBER "life"i
-      | "you gain"i NUMBER "life"i
-      | "you lose"i NUMBER "life"i
-      | "you draw"i NUMBER "cards"i
-      | "you draw"i NUMBER "card"i
-      | "you discard"i NUMBER "card"i
-      | "you discard"i NUMBER "cards"i
-      | "you may put"i entity "onto the battlefield"i
-      | "you may put"i entity "into your hand"i
-      | "you may put"i entity "into your graveyard"i
-      | "you may cast"i entity
-      | "you may play"i entity
-      | "you may pay"i mana_cost
-      | "you may return"i entity "to your hand"i
-      | "you may search your library for"i search_target
-      | "you may sacrifice"i sacrifice_target
-      | "you may discard"i NUMBER? "card"i NUMBER?
-      | "you may exile"i entity
-      | "you may tap"i entity
-      | "you may untap"i entity
-      | "you may transform"i entity
-      | "you may reveal"i entity
-      | "you may put"i counter "on"i entity
-      | "you may put"i NUMBER counter "on"i entity
-      | "you may copy"i entity
-      | "you may choose"i entity
-      | "you may look at the top"i NUMBER "cards of your library"i
-      | "you may mill"i NUMBER "cards"i
-      | "you may surveil"i NUMBER
-      | "you may counter target"i spell_type
-      | "you may gain"i NUMBER "life"i
-      | "you may lose"i NUMBER "life"i
-      | "you may create"i token
-      | "you may deal"i NUMBER "damage to"i target
-      | "you may destroy"i target
-      | "you may exile"i target
-      | "you may return"i target "to"i zone
-      | "you may attach"i entity "to"i target
-      | "you may"i entity "gain"i ability_granted
-      | "you may"i entity "get"i stat_modifier "until end of turn"i?
-      | "you may prevent"i NUMBER? "damage"i
-      | "you may sacrifice"i sacrifice_target
-      | "you may discard"i NUMBER? "card"i NUMBER?
-      | "you may search your library for"i search_target
-      | "you may shuffle"i
-      | "you may tap"i target
-      | "you may untap"i target
-      | "you may transform"i target
+      | modify_creature_effect
+      | return_effect
+      | attach_effect
+      | prevent_effect
+      | sacrifice_effect
+      | discard_effect
+      | shuffle_effect
+      | tap_effect
+      | transform_effect
+      | counter_effect
+      | copy_effect
+      | enters_effect
+      | mill_effect
+      | surveil_effect
+      | put_counter_effect
+      | conditional_effect
+      | compound_effect
+      | may_effect
+
+// Create effect
+create_effect: "create"i token
+             | "create"i "a token that's a copy of target"i entity ("."? "If this spell was kicked"i "," "create five of those tokens instead"i)?
+             | "create a token that's a copy of"i entity
+
+// Draw effect
+draw_effect: "draw"i NUMBER? "card"i NUMBER?
+           | "draw"i NUMBER "cards"i
+           | "you draw"i NUMBER "cards"i
+           | "you draw"i NUMBER "card"i
+           | "you draw a card and you lose"i NUMBER "life"i
+
+// Life change effect
+life_change_effect: "gain"i NUMBER "life"i
+                  | "lose"i NUMBER "life"i
+                  | "you gain"i NUMBER "life"i
+                  | "you lose"i NUMBER "life"i
+                  | "each opponent loses"i NUMBER "life"i
+
+// Damage effect (expanded from simple_effect)
+damage_effect: entity "deals"i damage_amount "to"i damage_target
+             | "deal"i NUMBER "damage to"i target
+             | "deal"i NUMBER "damage to each"i target_description
+             | entity "deals"i NUMBER "damage to"i target
+             | entity "deals"i NUMBER "damage to"i "each"i entity
+             | entity "deals"i NUMBER "damage to"i "each opponent"i
+             | entity "deals"i NUMBER "damage to"i "target"i entity
+             | entity "deals"i NUMBER "damage to"i "any target"i
+             | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
+             | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
+             | entity "deals"i "damage equal to"i entity "to"i target
+             | entity "deals"i "damage equal to its power to"i target
+
+// Destroy effect (expanded)
+destroy_effect: "destroy"i target
+              | "destroy all"i target_description
+              | "destroy all"i entity
+              | "destroy all"i color entity
+              | "destroy target"i entity "or"i entity
+              | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i "." "You lose life equal to that permanent's mana value"i
+
+// Exile effect
+exile_effect: "exile"i target
+            | "exile all"i target_description
+
+// Search effect
+search_effect: "search your library for"i search_target ("," "reveal it"i)? ("," "put it into your hand"i)? ("," "then shuffle"i)?
+             | "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
+             | "search your library for"i search_target "," "put that card into your graveyard"i "," "then shuffle"i
+             | "search your library for"i search_target "," "reveal it"i "," "shuffle your library"i "," "then put that card on top of it"i
+             | "search your library for"i search_target "," "shuffle"i "," "then put that card on top"i
+             | "search your library for"i search_target "," "reveal it"i "," "and put it into your hand"i "." "Then shuffle your library"i
+             | "search your library for"i search_target "," "shuffle your library"i "," "then put that card into your hand"i
+             | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
+             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "put them into your hand"i "," "then shuffle"i
+             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "shuffle your library"i "," "then put them on top in any order"i
+
+// Modify creature effect
+modify_creature_effect: "creatures you control get"i stat_modifier "until end of turn"i
+                      | "creatures you control gain"i ability_granted "until end of turn"i
+                      | "target creature gains"i ability_granted "until end of turn"i
+                      | "target creature gets"i stat_modifier "until end of turn"i
+                      | "permanents you control gain"i ability_granted "until end of turn"i
+                      | "instead"i "any number of target creatures you control gain"i ability_granted "until end of turn"i
+                      | "that creature gains"i ability_granted "until end of turn"i
+                      | entity "gain"i ability_granted
+                      | entity "get"i stat_modifier "until end of turn"i?
+                      | "That creature gains"i ability_granted "until end of turn"i
+                      | "Equipped creature"i "gets"i stat_modifier
+                      | "Equipped creature"i "has"i ability_granted
+                      | target "gets"i stat_modifier "until end of turn"i
+                      | entity "is"i entity "in addition to its other types"i
+
+// Return effect
+return_effect: "return target"i card_type "from your graveyard to the battlefield"i
+             | "return target"i card_type "card from your graveyard to your hand"i
+             | "return target"i card_type "card from your graveyard to the battlefield"i
+             | "return"i target "to"i zone
+
+// Attach effect
+attach_effect: "attach"i entity "to"i target
+             | "attach it to target creature you control"i
+
+// Prevent effect
+prevent_effect: "prevent"i NUMBER? "damage"i
+              | "prevent all damage that would be dealt to"i target "this turn"i
+              | "prevent all damage that would be dealt"i "this turn"i
+
+// Sacrifice effect (expanded)
+sacrifice_effect: "sacrifice"i sacrifice_target
+                | entity "sacrifices"i sacrifice_target
+                | sacrifice_prefix entity "sacrifices"i sacrifice_object
+                | sacrifice_prefix entity "sacrifices"i half_sacrifice
+
+// Half sacrifice patterns
+half_sacrifice: "half"i "the creatures they control"i "rounded up"i
+              | "half"i "the permanents they control"i "rounded up"i
+              | "half"i "the"i permanent_type "they control"i "rounded up"i
+
+// Discard effect (expanded)
+discard_effect: "discard"i NUMBER? "card"i NUMBER?
+              | entity "discards"i NUMBER? "card"i NUMBER?
+              | entity "discards"i NUMBER "cards"i
+              | entity "discards"i "their hand"i
+              | entity "discards"i "a card of their choice"i
+              | "each opponent discards a card"i
+              | "you discard"i NUMBER "card"i
+              | "you discard"i NUMBER "cards"i
+
+// Shuffle effect
+shuffle_effect: "shuffle"i
+              | "shuffle your library"i
+
+// Tap effect
+tap_effect: "tap"i target
+          | "untap"i target
+
+// Transform effect
+transform_effect: "transform"i target
+
+// Counter effect
+counter_effect: "counter"i "target"i "spell"i
+              | "counter"i "target"i card_type "spell"i
+              | "counter"i "target"i "spell or ability"i
+              | "counter target"i spell_type
+              | "counter"i entity
+
+// Copy effect
+copy_effect: "copy"i "target"i "spell"i
+           | "copy"i "target"i card_type "spell"i
+           | "copy"i entity
+           | "copy target"i spell_type
+
+// Enters effect
+enters_effect: "enters"i "with"i counter "on it"i
+             | "enters"i "with"i NUMBER counter "on it"i
+             | "enters"i "tapped"i
+             | "enters"i "the battlefield"i
+             | "enters"i "the battlefield tapped"i
+             | "enters"i "the battlefield with"i counter "on it"i
+             | "enters"i "the battlefield with"i NUMBER counter "on it"i
+             | "enters"i "the battlefield under"i entity "control"i
+             | "enters"i "the battlefield under"i entity "control with"i counter "on it"i
+             | "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
+             | "enters"i "the battlefield under"i entity "control tapped"i
+
+// Mill effect (expanded)
+mill_effect: "mill"i NUMBER "cards"i
+           | entity "mills"i NUMBER "cards"i
+
+// Surveil effect
+surveil_effect: "surveil"i NUMBER
+
+// Put counter effect
+put_counter_effect: "put"i counter "on"i target
+                  | "put a"i counter_type "counter on"i entity
+                  | "put"i NUMBER counter_type "counters on"i entity
+
+// May effect (consolidated from many similar patterns)
+may_effect: "you may"i may_action
+
+// May action (what can be done with "you may")
+may_action: "put"i entity "onto the battlefield"i
+          | "put"i entity "into your hand"i
+          | "put"i entity "into your graveyard"i
+          | "cast"i entity
+          | "play"i entity
+          | "pay"i mana_cost
+          | "return"i entity "to your hand"i
+          | "search your library for"i search_target
+          | "sacrifice"i sacrifice_target
+          | "discard"i NUMBER? "card"i NUMBER?
+          | "exile"i entity
+          | "tap"i entity
+          | "untap"i entity
+          | "transform"i entity
+          | "reveal"i entity
+          | "put"i counter "on"i entity
+          | "put"i NUMBER counter "on"i entity
+          | "copy"i entity
+          | "choose"i entity
+          | "look at the top"i NUMBER "cards of your library"i
+          | "mill"i NUMBER "cards"i
+          | "surveil"i NUMBER
+          | "counter target"i spell_type
+          | "gain"i NUMBER "life"i
+          | "lose"i NUMBER "life"i
+          | "create"i token
+          | "deal"i NUMBER "damage to"i target
+          | "destroy"i target
+          | "exile"i target
+          | "return"i target "to"i zone
+          | "attach"i entity "to"i target
+          | entity "gain"i ability_granted
+          | entity "get"i stat_modifier "until end of turn"i?
+          | "prevent"i NUMBER? "damage"i
+          | "draw"i NUMBER? "card"i NUMBER?
 
 // Gain life effect
 gain_life_effect: "gain"i NUMBER "life"i
 
 // Conditional effect
 conditional_effect: "if"i condition_clause "," effect
+                  | "if you do"i "," effect
+                  | "if you control ten or more Gates with different names"i "," "you win the game"i
 
 // Create token effect
 create_token_effect: "create"i token
@@ -907,17 +977,6 @@ create_token_effect: "create"i token
                    | "Create a token that's a copy of target creature you control, except it has haste and"i QUOTED_TEXT
                    | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
 
-// Search effect (more detailed than regular effect)
-search_effect: "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
-             | "search your library for"i search_target "," "reveal it"i "," "put it into your hand"i "," "then shuffle"i
-             | "search your library for"i search_target "," "reveal it"i "," "shuffle your library"i "," "then put that card on top of it"i
-             | "search your library for"i search_target "," "shuffle"i "," "then put that card on top"i
-             | "search your library for"i search_target "," "reveal it"i "," "and put it into your hand"i "." "Then shuffle your library"i
-             | "search your library for"i search_target "," "shuffle your library"i "," "then put that card into your hand"i
-             | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
-             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "put them into your hand"i "," "then shuffle"i
-             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "shuffle your library"i "," "then put them on top in any order"i
-
 // Put onto battlefield effect
 put_onto_battlefield_effect: "put that card onto the battlefield"i tapped?
                            | "put that card onto the battlefield"i "under your control"i tapped?
@@ -926,9 +985,6 @@ put_onto_battlefield_effect: "put that card onto the battlefield"i tapped?
 
 // Tapped state
 tapped: "tapped"i
-
-// Draw effect
-draw_effect: "draw"i NUMBER? "card"i NUMBER?
 
 // Equip ability
 equip_ability: "Equip"i equip_cost reminder_text?
