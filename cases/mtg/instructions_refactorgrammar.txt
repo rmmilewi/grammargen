@@ -12,15 +12,7 @@ Maintainability – Reduce unnecessary duplication or overly specific rules.
 Generalizability – Consolidate repeated rule patterns that differ only slightly.
 
 ✅ Refactoring Goal
-Currently, the grammar contains overly specific rules like:
-
-| "Target"i entity "sacrifices"i "a creature of their choice"i
-| "Target"i entity "sacrifices"i "a permanent of their choice"i
-| "Target"i entity "sacrifices"i "a"i permanent_type "of their choice"i
-| "Each"i entity "sacrifices"i "a creature of their choice"i
-| "Each"i entity "sacrifices"i "a permanent of their choice"i
-| "Each"i entity "sacrifices"i "a"i permanent_type "of their choice"i
-These should be consolidated into a smaller number of more general rules. When doing so, prefer using nonterminals like sacrifices_clause, target_prefix, or sacrifice_object if that improves structure and reuse.
+Currently, the grammar contains overly specific rules tailored to particular cards. This works well as a shortcut to get cards to parse, but we need to back and clean up these rules.
 
 Your refactor should retain or improve the ability of the grammar to parse correct MTG rules text. Some decrease in parse coverage is acceptable temporarily if it helps simplify and generalize the grammar.
 
