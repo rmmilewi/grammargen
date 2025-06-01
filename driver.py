@@ -96,7 +96,15 @@ def main():
                 countOfStringsParsedSuccessfully += 1
             except Exception as e:
                 print("Error encountered during parsing...")
-                print(e)
+                parsingErrorMessage = str(e)
+                if "Expected one of:" in parsingErrorMessage:
+                    splitErrorMessage = parsingErrorMessage.split("Expected one of:")
+                    if len(splitErrorMessage[1]) >= 100:
+                        print(splitErrorMessage[0],"Expected one of:\n",splitErrorMessage[1][0:100],"\n\t...")
+                    else:
+                        print(parsingErrorMessage)
+                else:
+                    print(parsingErrorMessage)
 
             if transformer != None:
                 try:
