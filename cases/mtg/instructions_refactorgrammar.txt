@@ -11,6 +11,8 @@ Maintainability – Reduce unnecessary duplication or overly specific rules.
 
 Generalizability – Consolidate repeated rule patterns that differ only slightly.
 
+Edit the existing file when you do your refactoring, do not create a separate file.
+
 ✅ Refactoring Goal
 Currently, the grammar contains overly specific rules tailored to particular cards. This works well as a shortcut to get cards to parse, but we need to back and clean up these rules.
 
