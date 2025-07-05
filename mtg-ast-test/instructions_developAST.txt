@@ -31,7 +31,7 @@ Include representative attributes for each class (e.g., condition, effect, targe
 
 💡 Output format:
 
-Provide the class hierarchy as code (e.g., Python class definitions).
+Provide the class hierarchy as code (e.g., Python class definitions). Files should be located in the mtg-ast-test directory.
 
 Include a short description of each class’s purpose and main attributes.
 
