@@ -1,0 +1,64 @@
+📌 Prompt for OpenHands
+You are tasked with designing a class hierarchy for an Abstract Syntax Tree (AST) that represents Magic: The Gathering (MTG) card text in a structured, parseable form. The goal is to enable dynamic construction of ASTs for MTG card rules text that mirrors how compilers represent source code.
+
+💡 Objectives:
+
+Design a class hierarchy for the AST that covers the main elements of MTG card text.
+
+Draw inspiration from programming language ASTs:
+
+* Declarations — e.g., creating tokens, defining attributes (e.g., "1/1 Elf creature token", "Flying")
+
+* Statements — e.g., conditional or triggered abilities ("If this creature dies, draw a card.")
+
+* Expressions — e.g., actions and effects ("Destroy target creature", "Tap two untapped creatures you control")
+
+💡 Requirements for the class hierarchy:
+
+Include an abstract base class (e.g., ASTNode or MagicNode) that all other classes inherit from.
+
+Include subclasses for:
+
+* MTGDeclaration: Representing things like creating tokens, defining card types, abilities, or characteristics.
+
+* MTGStatement: Representing conditional or triggered actions, static abilities, or rules text that reads like statements.
+
+* MTGExpression: Representing effects, costs, or target specifications.
+
+Allow for nesting: Statements may contain expressions; declarations may include expressions describing characteristics, etc.
+
+Include representative attributes for each class (e.g., condition, effect, target, value, type).
+
+💡 Output format:
+
+Provide the class hierarchy as code (e.g., Python class definitions).
+
+Include a short description of each class’s purpose and main attributes.
+
+The class should include constructors, getters and setters and other basic functionality.
+
+For each class you create and piece of functionality you add, add unit tests in the mtg-ast-test directory.
+
+There should also be tests where you construct an MTG card to show how the AST nodes can be used. There are example card inputs in mtg-ast-test/FoundationsCardInputs.txt
+
+💡 Constraints:
+
+Focus on the class design, not on parsing text into this structure.
+
+Make the design extensible so that future work could map card text into this AST form.
+
+Here's an example to help you get started.
+
+```
+class MTGNode:
+    pass
+
+class MTGDeclaration(MTGNode):
+    pass
+
+class MTGExpression(MTGNode):
+    pass
+
+class MTGStatement(MTGStatement):
+    pass
+'''

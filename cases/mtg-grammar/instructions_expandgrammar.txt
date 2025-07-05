@@ -18,6 +18,10 @@ This means:
 
 ❌ Do not hardcode one-off constructions that only match a single card
 
+Note that whenever you take a shortcut or introduce an ambiguity into the grammar, it slows everything down.
+Running driver.py currently takes 121 seconds with eight processes. Do NOT cancel the driver while it is running, it is guaranteed
+to halt.
+
 
 🧪 Evaluate Your Grammar
 Use the following command to test how many card texts are successfully parsed by your grammar:
