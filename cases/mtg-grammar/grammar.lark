@@ -378,23 +378,15 @@ player_state_ability: "You have"i ability_granted reminder_text?
                     | "If an effect would"i /[^,]+/ "," "it"i /[^.]+/ "instead"i
 
 // ==================== STATIC ABILITIES ====================
-// Static abilities - grouped by effect type
-static_ability: // Granting abilities
-              | entity_grant "have"i ability_granted
-              | entity_grant "has"i ability_granted
-              | entity_grant "gains"i ability_granted duration?
-              | entity_grant "gain"i ability_granted duration?
-              | "Creatures you control gain"i ability_granted duration? reminder_suffix?
-              | "Creatures you control have"i ability_granted reminder_suffix?
+// Static abilities - consolidated by pattern
+static_ability: // Granting abilities: entity_grant verb ability [duration] [reminder]
+              | entity_grant ("have"i | "has"i | "gains"i | "gain"i) ability_granted duration? reminder_suffix?
 
-              // Stat modifications
-              | entity_grant "get"i stat_modifier stat_modifier_suffix?
-              | entity_grant "gets"i stat_modifier stat_modifier_suffix?
-              | "Other creatures you control of the chosen type get"i stat_modifier
+              // Stat modifications: entity_grant verb stat [suffix|for_each]
+              | entity_grant ("get"i | "gets"i) stat_modifier (stat_modifier_suffix | for_each_clause)?
 
               // Compound stat + ability: "gets +X/+Y and gains Z"
-              | entity_grant "gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted duration? reminder_suffix?
-              | entity_grant "get"i stat_modifier "and"i ("gain"i | "have"i) ability_granted duration? reminder_suffix?
+              | entity_grant ("gets"i | "get"i) stat_modifier "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_granted duration? reminder_suffix?
               // Additional conditional: "~ gets +5/+5 as long as"
               | entity "gets an additional"i stat_modifier "as long as"i condition_clause
 
@@ -410,24 +402,14 @@ static_ability: // Granting abilities
               | entity "has"i ability_granted "and gains"i type_addition
               | entity "gains"i type_addition
 
-              // Conditional static abilities
+              // Conditional static abilities (recursive — covers all static patterns)
               | "As long as"i condition_clause "," static_ability
-              | "As long as"i condition_clause "," entity "gets"i stat_modifier
-              | "As long as"i condition_clause "," entity "gains"i ability_granted
-              | "As long as"i condition_clause "," entity "gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted
-              | "As long as"i condition_clause "," entity "has"i ability_granted "and gains"i type_addition
 
-              // "During your turn" conditional static abilities
+              // "During your turn" conditional static abilities (recursive)
               | "During your turn"i "," static_ability reminder_text?
-              | "During your turn"i "," entity "has"i ability_granted reminder_suffix?
-              | "During your turn"i "," entity "gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted reminder_suffix?
 
               // Spells cost reduction (static form)
               | spell_type_desc "you cast cost"i "{" NUMBER "}" cost_direction
-
-              // Stat bonus for each counter/entity
-              | entity_grant "get"i stat_modifier for_each_clause
-              | entity_grant "gets"i stat_modifier for_each_clause
 
 // Entity that is granted an ability or stat modification
 entity_grant: "You"
@@ -1149,10 +1131,6 @@ effect: // Creation effects
       // Creature transformation effects
       | become_creature_effect
 
-      // Card viewing effects
-      | look_effect
-      | reveal_until_effect
-
       // Complex effects
       | conditional_effect
       | compound_effect
@@ -1162,11 +1140,8 @@ effect: // Creation effects
       | simple_effect
 
 // ==================== SIMPLE EFFECTS ====================
-// Simple effect patterns
-simple_effect: // Damage patterns
-             | entity "deals"i damage_amount "to"i damage_target
-
-             // Sacrifice patterns
+// Simple effect patterns (damage moved to damage_effect)
+simple_effect: // Sacrifice patterns
              | sacrifice_pattern
 
              // Information patterns
@@ -1282,20 +1257,10 @@ life_reference: entity
               | entity "'s"i creature_stat
               | "that creature's"i creature_stat
 
-// Damage effect
+// Damage effect (consolidated: dealer + verb + amount + "to" + recipient)
 damage_effect: entity "deals"i damage_amount "to"i damage_target
-             | "deal"i NUMBER "damage to"i target
-             | "deal"i NUMBER "damage to each"i target_description
-             | entity "deals"i NUMBER "damage to"i target
-             | entity "deals"i NUMBER "damage to"i "each"i entity
-             | entity "deals"i NUMBER "damage to"i "each opponent"i
-             | entity "deals"i NUMBER "damage to"i "target"i entity
-             | entity "deals"i NUMBER "damage to"i "any target"i
-             | entity "deals"i NUMBER "damage to"i "target player or planeswalker"i
-             | entity "deals"i NUMBER "damage to"i "each player or planeswalker"i
-             | entity "deals"i "damage equal to"i entity "to"i target
-             | entity "deals"i "damage equal to its power to"i target
-             // Damage divided patterns
+             | "deal"i damage_amount "to"i damage_target
+             // Damage divided patterns (special case)
              | entity "deals"i NUMBER "damage divided as you choose among any number of target"i /[^.]+/
 
 // Destroy effect
@@ -1322,71 +1287,107 @@ exile_effect: "exile"i target
             | "exile"i target "until"i entity "leaves the battlefield"i
 
 // Search effect
-search_effect: "search your library for"i search_target ("," "reveal it"i)? ("," "put it into your hand"i)? ("," "then shuffle"i)?
-             | "search your library for"i search_target "," put_onto_battlefield_effect "," "then shuffle"i
-             | "search your library for"i search_target "," "put that card into your graveyard"i "," "then shuffle"i
-             | "search your library for"i search_target "," "reveal it"i "," "shuffle your library"i "," "then put that card on top of it"i
-             | "search your library for"i search_target "," "shuffle"i "," "then put that card on top"i
-             | "search your library for"i search_target "," "reveal it"i "," "and put it into your hand"i "." "Then shuffle your library"i
-             | "search your library for"i search_target "," "shuffle your library"i "," "then put that card into your hand"i
+// Search effect (consolidated: search + quantity? + target + action chain)
+search_effect: "search your library for"i search_quantity? search_target ("," search_action)* ("." search_sentence_action)*
+             // Special Gate search with win condition
              | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
-             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "put them into your hand"i "," "then shuffle"i
-             | "search your library for up to"i NUMBER search_target "," "reveal them"i "," "shuffle your library"i "," "then put them on top in any order"i
 
-// Put onto battlefield effect
-put_onto_battlefield_effect: "put that card onto the battlefield"i tapped?
-                           | "put that card onto the battlefield"i "under your control"i tapped?
-                           | "put it onto the battlefield"i tapped?
-                           | "put it onto the battlefield"i "under your control"i tapped?
+// Search quantity (optional)
+search_quantity: "up to"i NUMBER
+
+// Individual search actions (comma-separated)
+search_action: "reveal it"i
+             | "reveal them"i
+             | "put it into your hand"i
+             | "and put it into your hand"i
+             | "put them into your hand"i
+             | "put that card into your graveyard"i
+             | put_onto_battlefield_effect
+             | "put them onto the battlefield"i tapped?
+             | "shuffle"i
+             | "shuffle your library"i
+             | "then shuffle"i
+             | "then put that card on top of it"i
+             | "then put that card on top"i
+             | "then put them on top in any order"i
+             | "then put that card into your hand"i
+             | "exile it"i
+
+// Sentence-level search actions (period-separated)
+search_sentence_action: "Then shuffle your library"i
+
+// Put onto battlefield effect (consolidated: subject + optional control + optional tapped)
+put_onto_battlefield_effect: "put"i put_battlefield_subject "onto the battlefield"i under_your_control? tapped?
+
+// Subject of "put onto battlefield"
+put_battlefield_subject: "it"i | "that card"i
+
+// "under your control" clause (reusable)
+under_your_control: "under your control"i
 
 // Tapped state
 tapped: "tapped"i
 
-// Modify creature effect
-modify_creature_effect: "creatures you control get"i stat_modifier duration? reminder_suffix?
-                      | "creatures you control gain"i ability_granted duration? reminder_suffix?
-                      | "creatures you control get"i stat_modifier "and"i ("gain"i | "have"i) ability_granted duration? reminder_suffix?
-                      | "target creature gains"i ability_granted duration?
-                      | "target creature gets"i stat_modifier duration?
-                      | "target creature gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted duration? reminder_suffix?
-                      | "target creature you control gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted duration? reminder_suffix?
-                      // "another target creature" patterns with "where X is"
-                      | "another target"i entity "gains"i ability_granted "and gets"i stat_modifier duration? where_clause?
-                      | target "gains"i ability_granted "and gets"i stat_modifier duration? where_clause?
-                      | target "gets"i stat_modifier duration? where_clause?
-                      | "permanents you control gain"i ability_granted duration?
-                      | "instead"i "any number of target creatures you control gain"i ability_granted duration?
-                      | "that creature gains"i ability_granted duration?
-                      | "That creature gains"i ability_granted duration?
-                      | entity "gain"i ability_granted
-                      | entity "get"i stat_modifier duration?
-                      | entity "gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted duration?
-                      | "Equipped creature"i "gets"i stat_modifier
-                      | "Equipped creature"i "gets"i stat_modifier "and"i ("gains"i | "has"i) ability_granted
+// Modify creature effect (consolidated: subject + verb pattern + optional combined + duration/reminder/where)
+modify_creature_effect: // Subject gets stat [and gains/has ability]
+                      | modify_subject_stat stat_modifier modify_stat_combined? duration? reminder_suffix? where_clause?
+                      // Subject gains ability [and gets stat]
+                      | modify_subject_ability ability_granted modify_ability_combined? duration? reminder_suffix? where_clause?
+                      // Equipment has ability
                       | "Equipped creature"i "has"i ability_granted
-                      | target "gets"i stat_modifier duration?
+                      // Type identity
                       | entity "is"i entity "in addition to its other types"i
-                      // Double power effect
+                      // Special cases
+                      | "instead"i "any number of target creatures you control gain"i ability_granted duration?
                       | "Double target creature's power"i duration?
 
-// Return effect
-return_effect: "return target"i card_type "from your graveyard to the battlefield"i
-             | "return target"i card_type "card from your graveyard to your hand"i
-             | "return target"i card_type "card from your graveyard to the battlefield"i
+// Subjects that use "get/gets" + stat_modifier
+modify_subject_stat: "creatures you control get"i
+                   | "target creature gets"i
+                   | "target creature you control gets"i
+                   | target "gets"i
+                   | entity "get"i
+                   | entity "gets"i
+                   | "Equipped creature"i "gets"i
+
+// Subjects that use "gain/gains" + ability_granted
+modify_subject_ability: "creatures you control gain"i
+                      | "target creature gains"i
+                      | "permanents you control gain"i
+                      | "that creature gains"i
+                      | "another target"i entity "gains"i
+                      | target "gains"i
+                      | entity "gain"i
+
+// Optional combined: stat pattern followed by ability grant
+modify_stat_combined: "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_granted
+
+// Optional combined: ability pattern followed by stat grant
+modify_ability_combined: "and gets"i stat_modifier
+
+// Return effect (consolidated: return + what + optional from + destination + optional state/timing)
+return_effect: // Return target/entity to a zone
              | "return"i target "to"i zone
+             // Return target/entity to the battlefield with optional control/state/timing
+             | "return"i target "to the battlefield"i return_under_control? return_with_clause? timing_clause?
+             | "return"i entity "to the battlefield"i return_under_control? return_with_clause? timing_clause?
+             // Return card references from zone to zone/battlefield
+             | "return"i return_card_ref "from"i zone "to"i zone
+             | "return"i return_card_ref "from"i zone "to the battlefield"i
+             // Return all cards
              | "return all"i card_type "cards"i return_filter? "from"i zone "to"i zone
              | "return all"i "attacking creatures to their owner's hand"i
-             | "return up to"i NUMBER "target"i card_type "cards from your graveyard to your hand"i
-             // Return to battlefield under owner's control (with optional counter)
-             | "return"i target "to the battlefield under"i entity "control"i return_with_clause?
-             | "return"i target "to the battlefield under its owner's control"i return_with_clause?
-             | "return"i target "to the battlefield under its owner's control at the beginning of the next end step"i
-             | "return"i entity "to the battlefield"i return_with_clause?
-             | "return"i entity "to the battlefield under its owner's control"i return_with_clause?
-             // Return from specific zones
-             | "return target"i card_type "card"i return_filter? "from"i zone "to"i zone
-             // Put all creature cards from graveyards
+             // Put all cards from graveyards
              | "put all"i card_type "cards from all graveyards onto the battlefield under your control"i
+
+// Card reference for return (target TYPE, target TYPE card, up to N target TYPE cards)
+return_card_ref: "target"i card_type
+               | "target"i card_type "card"i return_filter?
+               | "up to"i NUMBER "target"i card_type "cards"i
+
+// Under whose control the permanent returns
+return_under_control: "under"i entity "control"i
+                    | "under its owner's control"i
 
 // Return with clause (counter on return, with optional timing)
 return_with_clause: "with"i counter "on it"i timing_clause?
@@ -1475,18 +1476,19 @@ copy_effect: "copy"i "target"i "spell"i
            | "copy"i entity
            | "copy target"i spell_type
 
-// Enters effect
-enters_effect: "enters"i "with"i counter "on it"i
-             | "enters"i "with"i NUMBER counter "on it"i
-             | "enters"i "tapped"i
-             | "enters"i "the battlefield"i
-             | "enters"i "the battlefield tapped"i
-             | "enters"i "the battlefield with"i counter "on it"i
-             | "enters"i "the battlefield with"i NUMBER counter "on it"i
-             | "enters"i "the battlefield under"i entity "control"i
-             | "enters"i "the battlefield under"i entity "control with"i counter "on it"i
-             | "enters"i "the battlefield under"i entity "control with"i NUMBER counter "on it"i
-             | "enters"i "the battlefield under"i entity "control tapped"i
+// Enters effect (consolidated: optional battlefield + optional control + optional state)
+enters_effect: "enters"i enters_battlefield_clause? enters_control_clause? enters_state_clause?
+
+// "the battlefield" destination
+enters_battlefield_clause: "the battlefield"i
+
+// "under X's control" clause
+enters_control_clause: "under"i entity "control"i
+
+// State on entry (tapped or with counter)
+enters_state_clause: "tapped"i
+                   | "with"i counter "on it"i
+                   | "with"i NUMBER counter "on it"i
 
 // Mill effect
 mill_effect: "mill"i NUMBER "cards"i
