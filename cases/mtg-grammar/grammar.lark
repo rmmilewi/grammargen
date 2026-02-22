@@ -155,7 +155,7 @@ activation_cost: cost
                | "Remove"i counter_amount counter_type "counters from"i entity
                | "Remove"i counter_amount counter_type "counter from"i entity
                // Tap untapped creatures
-               | "{T}" "," "Tap"i NUMBER "untapped"i creature_type "you control"i
+               | "{T}" "," "Tap"i NUMBER "untapped"i (creature_type | creature_type_plural) "you control"i
 
 // Simple mana cost
 mana_only_cost: "{" (mana_cost | NUMBER | color_symbol) "}"
@@ -263,7 +263,6 @@ whenever_clause: trigger_event
                | entity "becomes blocked"i
                | entity "deals combat damage to"i entity
                | "a creature deals combat damage to a player"i
-               | "this creature deals combat damage to a player"i
                | "this creature attacks while you control a creature with power 4 or greater"i
                | "~ attacks while you control a creature with power"i NUMBER "or greater"i
                | "you attack with"i NUMBER "or more creatures"i
@@ -286,8 +285,6 @@ whenever_clause: trigger_event
                | "you draw your second card each turn"i
 
                // Combined enter/attack triggers
-               | "this creature enters or attacks"i
-               | "~ enters or attacks"i
                | entity "enters or attacks"i
 
                // Enters battlefield (whenever-specific)
@@ -678,14 +675,8 @@ choose_one_ability: trigger_prefix? modal_choice choice_separator? choose_one_op
 // Trigger prefix for choose_one_ability
 trigger_prefix: trigger_condition ","
 
-// Choose one options
-choose_one_options: NEWLINE choose_one_option+
-
-// Choose one option
-choose_one_option: BULLET effect "."? NEWLINE?
-                 | BULLET compound_effect "."? NEWLINE?
-                 | BULLET effect "if"i condition_clause "."? NEWLINE?
-                 | BULLET create_effect "if"i condition_clause "."? NEWLINE?
+// Choose one options (reuses modal_option for bullet + effect patterns)
+choose_one_options: NEWLINE modal_option+
 
 // Choice separator
 choice_separator: "—" | "--" | "-" | ":"
@@ -698,35 +689,24 @@ possessive_ability: entity APOSTROPHE "s" possessive_property
 
 // Possessive properties - grouped by type
 possessive_property: // Power and toughness together
-                   | "power and toughness are each equal to" power_toughness_reference
+                   | "power and toughness are each equal to" stat_reference
 
                    // Power only
-                   | "power is equal to" power_reference
+                   | "power is equal to" stat_reference
 
                    // Toughness only
-                   | "toughness is equal to" toughness_reference
+                   | "toughness is equal to" stat_reference
 
-// Power and toughness reference
-power_toughness_reference: entity
-                         | "the number of" entity "you control"
-
-// Power reference
-power_reference: entity
-               | "the number of" entity "you control"
-               | "your life total"
-               | NUMBER "plus the number of" entity "you control"
-
-// Toughness reference
-toughness_reference: entity
-                   | "the number of" entity "you control"
-                   | "your life total"
-                   | NUMBER "plus the number of" entity "you control"
+// Stat reference (used for power/toughness equal-to expressions)
+stat_reference: entity
+              | "the number of" entity "you control"
+              | "your life total"
+              | NUMBER "plus the number of" entity "you control"
 
 // Identity ability
 identity_ability: entity identity_verb identity_description
                  // Contraction "It's" = "It is"
                  | "It" APOSTROPHE "s"i identity_description
-                 | "It" "'" "s"i identity_description
 
 // Identity verb
 identity_verb: "is" | "becomes"
@@ -744,9 +724,9 @@ identity_description: // Type changing
                     | "a copy of" entity
 
                     // Creature transformation
-                    | "a" NUMBER "/" NUMBER color? creature_type
-                    | "a" NUMBER "/" NUMBER color? creature_type "with" ability_granted
-                    | "a" NUMBER "/" NUMBER color? creature_type "until end of turn"
+                    | "a" NUMBER "/" NUMBER color? creature_type+
+                    | "a" NUMBER "/" NUMBER color? creature_type+ "with" ability_granted
+                    | "a" NUMBER "/" NUMBER color? creature_type+ "until end of turn"
 
 // ==================== MECHANIC-SPECIFIC ABILITIES ====================
 // ===== WARD =====
@@ -1167,21 +1147,12 @@ effect: // Creation effects
 
 // ==================== SIMPLE EFFECTS ====================
 // Simple effect patterns (damage moved to damage_effect)
-simple_effect: // Sacrifice patterns
-             | sacrifice_pattern
-
-             // Information patterns
+simple_effect: // Information patterns
              | reveal_effect
              | reveal_hand_effect
 
-             // Mill patterns
-             | mill_pattern
-
              // Destruction patterns
              | destroy_pattern
-
-             // Discard patterns
-             | discard_pattern
 
              // Control patterns
              | control_effect
@@ -1217,9 +1188,6 @@ damage_target: target
 // Change target effect
 change_target_effect: "Change the target of target spell or ability with a single target"i
 
-// Sacrifice pattern
-sacrifice_pattern: entity "sacrifices"i sacrifice_target
-
 // Reveal effect
 reveal_effect: entity "reveals"i entity
              | library_reveal_effect
@@ -1230,23 +1198,11 @@ reveal_hand_effect: "Target opponent reveals their hand"i "." "You choose a"i ca
 // Library reveal effect
 library_reveal_effect: "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
 
-// Mill pattern
-mill_pattern: entity "mills"i NUMBER "cards"i
-
 // Destroy pattern
 destroy_pattern: "Destroy target"i permanent_type_target "an opponent controls"i?
 
 // Permanent type target
 permanent_type_target: permanent_type ("or"i permanent_type)?
-
-// Discard pattern
-discard_pattern: entity "discards"i discard_target
-
-// Discard target
-discard_target: NUMBER? "card"i NUMBER?
-              | NUMBER "cards"i
-              | "their hand"i
-              | "a card of their choice"i
 
 // Control effect
 control_effect: entity "gains control of"i target
@@ -1394,7 +1350,7 @@ look_reveal_target: NUMBER card_type "card"i look_target_filter?
 
 // Filters on the reveal target
 look_target_filter: "with power"i NUMBER "or less"i
-                  | "with mana value"i comparison entity
+                  | "with mana value"i comparison_operator entity
 
 // What to do with the revealed card
 look_reveal_action: "put it into your hand"i
@@ -1493,9 +1449,9 @@ timing_clause: "at the beginning of the next end step"i
 // Return filter (for return all X cards with condition)
 return_filter: "with mana value"i NUMBER "or less"i
              | "with mana value"i NUMBER "or greater"i
-             | "with mana value"i comparison NUMBER
-             | "with mana value"i comparison entity APOSTROPHE "s"i creature_stat
-             | "with mana value"i comparison entity
+             | "with mana value"i comparison_operator NUMBER
+             | "with mana value"i comparison_operator entity APOSTROPHE "s"i creature_stat
+             | "with mana value"i comparison_operator entity
 
 // Attach effect
 attach_effect: "attach"i entity "to"i target
@@ -1613,7 +1569,6 @@ become_creature_effect: entity "becomes a"i NUMBER "/" NUMBER entity "with"i abi
 
 // "It's still a land" clause (used after animation effects)
 still_clause: "." "It" APOSTROPHE "s still a"i permanent_type
-            | "." "It" "'" "s still a"i permanent_type
 
 // Suffix for become creature effects
 become_creature_suffix: "with"i ability_granted ("and all creature types"i)?
@@ -1705,7 +1660,7 @@ token: "a"i token_description
      | "a tapped"i token_description
      | NUMBER token_description
      | counter_amount token_description
-     | "a tapped"i NUMBER "/" NUMBER color? creature_type "creature token"i for_each_clause?
+     | "a tapped"i NUMBER "/" NUMBER color? creature_type+ "creature token"i for_each_clause?
      // Named/legendary tokens: "Scion of the Deep, a legendary 8/8 blue Octopus creature token"
      | /[A-Z][a-zA-Z ]+/ "," "a legendary"i token_description
      | /[A-Z][a-zA-Z ]+/ "," "a"i token_description
@@ -1732,27 +1687,23 @@ color_spec: color
           | color "and"i color
 
 // Token descriptions
-token_description: NUMBER "/" NUMBER color_spec? creature_type "creature token"i for_each_clause?
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature tokens"i for_each_clause?
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature token with"i ability_granted
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature tokens with"i ability_granted
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature token with"i QUOTED_TEXT
+token_description: NUMBER "/" NUMBER color_spec? creature_type+ "creature token"i for_each_clause?
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature tokens"i for_each_clause?
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature token with"i ability_granted
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature tokens with"i ability_granted
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature token with"i QUOTED_TEXT
                  // Named tokens: "create four 3/3 blue Serpent creature tokens named ~'s Coil"
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature tokens named"i /[^.]+/
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature token named"i /[^.]+/
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature tokens named"i /[^.]+/
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature token named"i /[^.]+/
                  // Tokens with where X is: "Create X 2/2 white Cat creature tokens, where X is your life total"
-                 | NUMBER "/" NUMBER color_spec? creature_type "creature tokens"i "," "where X is"i /[^.]+/
-                 | "Food token"i food_reminder?
-                 | "Treasure token"i treasure_reminder?
-                 | "Clue token"i clue_reminder?
-                 | "Gold token"i gold_reminder?
-                 | "Food tokens"i food_reminder?
-                 | "Treasure tokens"i treasure_reminder?
-                 | "Clue tokens"i clue_reminder?
-                 | "Gold tokens"i gold_reminder?
+                 | NUMBER "/" NUMBER color_spec? creature_type+ "creature tokens"i "," "where X is"i /[^.]+/
+                 | "Food"i ("token"i | "tokens"i) artifact_token_reminder?
+                 | "Treasure"i ("token"i | "tokens"i) artifact_token_reminder?
+                 | "Clue"i ("token"i | "tokens"i) artifact_token_reminder?
+                 | "Gold"i ("token"i | "tokens"i) artifact_token_reminder?
                  | "token that's a copy of"i entity
-                 | "number of"i NUMBER "/" NUMBER color_spec? creature_type "creature tokens equal to"i entity
-                 | "number of"i NUMBER "/" NUMBER color? creature_type "creature tokens equal to other creatures you control named"i entity
+                 | "number of"i NUMBER "/" NUMBER color_spec? creature_type+ "creature tokens equal to"i entity
+                 | "number of"i NUMBER "/" NUMBER color? creature_type+ "creature tokens equal to other creatures you control named"i entity
                  | "copy of target"i entity
                  | "copy of"i entity
                  | "token that's a copy of"i entity
@@ -1766,15 +1717,12 @@ token_exception: "it's"i token_exception_property
                | "it's"i permanent_type "in addition to its other types"i
 
 // Token exception properties
-token_exception_property: "a"i NUMBER "/" NUMBER creature_type
-                        | "a"i NUMBER "/" NUMBER color creature_type
-                        | "a"i color creature_type
+token_exception_property: "a"i NUMBER "/" NUMBER creature_type+
+                        | "a"i NUMBER "/" NUMBER color creature_type+
+                        | "a"i color creature_type+
 
 // Token reminders
-food_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
-treasure_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
-clue_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
-gold_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
+artifact_token_reminder: "(" "It's an artifact with" QUOTED_TEXT ")"
 
 // ==================== REMINDER TEXT ====================
 // Standalone reminder text (not attached to a keyword)
@@ -1847,16 +1795,10 @@ condition_clause: "you control"i entity
                 | "this spell was kicked"i
                 | "this creature has a"i counter "on it"i
                 | "this creature has"i NUMBER "or more"i counter "on it"i
-                | "this creature has a +1/+1 counter on it"i
                 | "this creature has"i NUMBER "or more +1/+1 counters on it"i
                 | "an opponent controls"i NUMBER "or more"i entity
-                | "it's your turn"i
-                | "it's not your turn"i
                 | "you've cast"i "a"i color "spell this turn"i
                 | "you've cast"i "another"i "spell this turn"i
-                | "you have 25 or more life"i
-                | "this creature has three or more +1/+1 counters on it"i
-                | "you control a creature with power 4 or greater"i
 
 // ==================== TARGETS ====================
 // Targets
@@ -1914,8 +1856,8 @@ creature_condition: "you control"i
                   | "you don't control"i
                   | "an opponent controls"i
                   | "with"i ability_granted
-                  | "with power"i comparison NUMBER
-                  | "with toughness"i comparison NUMBER
+                  | "with power"i comparison_operator NUMBER
+                  | "with toughness"i comparison_operator NUMBER
                   | "with"i counter "on it"i
 
 permanent_condition: "you control"i
@@ -1924,24 +1866,12 @@ permanent_condition: "you control"i
 
 spell_condition: "you control"i
                | "an opponent controls"i
-               | "with mana value"i comparison NUMBER
+               | "with mana value"i comparison_operator NUMBER
 
 card_condition: "in"i zone
               | "from your graveyard"i
               | "from a graveyard"i
-              | "with mana value"i comparison NUMBER
-
-// Comparisons
-comparison: "less than"i
-          | "greater than"i
-          | "equal to"i
-          | "less than or equal to"i
-          | "greater than or equal to"i
-          | "="
-          | "<"
-          | ">"
-          | "<="
-          | ">="
+              | "with mana value"i comparison_operator NUMBER
 
 // ==================== COSTS ====================
 // Costs
@@ -2055,7 +1985,6 @@ entity: "you"i
       | "that permanent"i
       | "that spell"i
       | "that card"i
-      | "enchanted creature"i
       | "equipped creature"i
       | "another target"i permanent_type
       | "another target"i creature_type
@@ -2064,9 +1993,7 @@ entity: "you"i
       | "another non-"i creature_type permanent_type "you control"i
       | "each other"i creature_type "you control"i
       | "another target"i entity "you control"i
-      | "that card"i
       | "that creature or planeswalker"i
-      | "that permanent"i
       | "its controller"i
       | "its owner"i
       | "their controller"i
@@ -2121,81 +2048,25 @@ spell_type: "a spell"i
           | "a planeswalker spell"i
           | "a noncreature spell"i
           | "an instant or sorcery spell"i
-          | "a spell with mana value"i comparison NUMBER
+          | "a spell with mana value"i comparison_operator NUMBER
           | "a"i color "spell"i
           | "a" color permanent_type "spell"i
           | "a noncreature or"i creature_type "spell"i
 
 // ==================== CREATURE TYPES ====================
-// Creature types (common ones from the comprehensive rules)
-creature_type: "Cat"i
-             | "Human"i
-             | "Elf"i
-             | "Elves"i
-             | "Goblin"i
-             | "Zombie"i
-             | "Vampire"i
-             | "Dragon"i
-             | "Angel"i
-             | "Demon"i
-             | "Beast"i
-             | "Bird"i
-             | "Warrior"i
-             | "Wizard"i
-             | "Knight"i
-             | "Cleric"i
-             | "Rogue"i
-             | "Shaman"i
-             | "Soldier"i
-             | "Merfolk"i
-             | "Elemental"i
-             | "Spirit"i
-             | "Giant"i
-             | "Dwarf"i
-             | "Druid"i
-             | "Assassin"i
-             | "Archer"i
-             | "Berserker"i
-             | "Pirate"i
-             | "Dinosaur"i
-             | "Hydra"i
-             | "Wurm"i
-             | "Horror"i
-             | "Insect"i
-             | "Rat"i
-             | "Wolf"i
-             | "Fox"i
-             | "Snake"i
-             | "Troll"i
-             | "Ogre"i
-             | "Minotaur"i
-             | "Centaur"i
-             | "Faerie"i
-             | "Fungus"i
-             | "Golem"i
-             | "Construct"i
-             | "Sphinx"i
-             | "Unicorn"i
-             | "Pegasus"i
-             | "Griffin"i
-             | "Nightmare"i
-             | "Treefolk"i
-             | "Spider"i
-             | "Wall"i
-             | "Artifact Creature"i
-             | "Eldrazi"i
-             | "God"i
-             | "Phyrexian"i
-             | "Advisor"i
+// Creature types (comprehensive alphabetical list per CR 205.3m)
+creature_type: "Advisor"i
              | "Aetherborn"i
              | "Alien"i
              | "Ally"i
+             | "Angel"i
              | "Antelope"i
              | "Ape"i
              | "Archer"i
              | "Archon"i
              | "Army"i
              | "Artificer"i
+             | "Assassin"i
              | "Assembly-Worker"i
              | "Atog"i
              | "Aurochs"i
@@ -2206,8 +2077,10 @@ creature_type: "Cat"i
              | "Basilisk"i
              | "Bat"i
              | "Bear"i
+             | "Beast"i
              | "Beeble"i
              | "Berserker"i
+             | "Bird"i
              | "Boar"i
              | "Bringer"i
              | "Brushwagg"i
@@ -2215,32 +2088,41 @@ creature_type: "Cat"i
              | "Camel"i
              | "Caribou"i
              | "Carrier"i
+             | "Cat"i
              | "Centaur"i
              | "Cephalid"i
              | "Chimera"i
              | "Citizen"i
+             | "Cleric"i
              | "Cockatrice"i
+             | "Construct"i
              | "Coward"i
              | "Crab"i
              | "Crocodile"i
              | "Cyclops"i
              | "Dauthi"i
              | "Demigod"i
+             | "Demon"i
              | "Deserter"i
+             | "Detective"i
              | "Devil"i
              | "Dinosaur"i
              | "Djinn"i
              | "Dog"i
              | "Donkey"i
+             | "Dragon"i
              | "Drake"i
              | "Dreadnought"i
              | "Drone"i
              | "Druid"i
              | "Dryad"i
+             | "Dwarf"i
              | "Egg"i
              | "Elder"i
-             | "Eldrazi Spawn"i
+             | "Eldrazi"i
+             | "Elemental"i
              | "Elephant"i
+             | "Elf"i
              | "Elk"i
              | "Eye"i
              | "Faerie"i
@@ -2248,11 +2130,16 @@ creature_type: "Cat"i
              | "Fish"i
              | "Fox"i
              | "Frog"i
+             | "Fungus"i
              | "Gamer"i
              | "Gargoyle"i
              | "Germ"i
+             | "Giant"i
              | "Gnome"i
              | "Goat"i
+             | "Goblin"i
+             | "God"i
+             | "Golem"i
              | "Gorgon"i
              | "Graveborn"i
              | "Gremlin"i
@@ -2267,6 +2154,7 @@ creature_type: "Cat"i
              | "Horror"i
              | "Horse"i
              | "Hound"i
+             | "Human"i
              | "Hydra"i
              | "Hyena"i
              | "Illusion"i
@@ -2278,6 +2166,7 @@ creature_type: "Cat"i
              | "Kavu"i
              | "Kirin"i
              | "Kithkin"i
+             | "Knight"i
              | "Kobold"i
              | "Kor"i
              | "Kraken"i
@@ -2291,6 +2180,7 @@ creature_type: "Cat"i
              | "Manticore"i
              | "Masticore"i
              | "Mercenary"i
+             | "Merfolk"i
              | "Metathran"i
              | "Minion"i
              | "Minotaur"i
@@ -2330,6 +2220,7 @@ creature_type: "Cat"i
              | "Pest"i
              | "Phelddagrif"i
              | "Phoenix"i
+             | "Phyrexian"i
              | "Pilot"i
              | "Pincher"i
              | "Pirate"i
@@ -2367,11 +2258,14 @@ creature_type: "Cat"i
              | "Sliver"i
              | "Slug"i
              | "Snake"i
+             | "Soldier"i
+             | "Spawn"i
              | "Specter"i
              | "Spellshaper"i
              | "Sphinx"i
              | "Spider"i
              | "Spike"i
+             | "Spirit"i
              | "Squid"i
              | "Squirrel"i
              | "Starfish"i
@@ -2391,12 +2285,14 @@ creature_type: "Cat"i
              | "Vedalken"i
              | "Viashino"i
              | "Volver"i
+             | "Wall"i
              | "Walrus"i
              | "Warlock"i
              | "Warrior"i
              | "Weird"i
              | "Werewolf"i
              | "Whale"i
+             | "Wizard"i
              | "Wolf"i
              | "Wolverine"i
              | "Wombat"i
@@ -2406,10 +2302,6 @@ creature_type: "Cat"i
              | "Yeti"i
              | "Zombie"i
              | "Zubera"i
-             | "Elf Warrior"i
-             | "Human Faerie Detective"i
-             | "Human Faerie Rogue"i
-             | "Detective"i
              // Land subtypes (used in "for each Forest you control" etc.)
              | "Forest"i
              | "Island"i
@@ -2525,10 +2417,8 @@ counter_type: "+1/+1"
             | "-1/-1"
             | "loyalty"i
             | "charge"i
-            | "time"i
             | "fate"i
             | "quest"i
-            | "storage"i
             | "poison"i
             | "age"i
             | "arrow"i
