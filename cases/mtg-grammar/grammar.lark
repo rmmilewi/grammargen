@@ -217,7 +217,7 @@ specific_effect: search_effect
                | draw_effect
                | gain_life_effect
                | conditional_effect
-               | create_token_effect
+               | create_effect
                | compound_effect
 
 // Trigger conditions
@@ -226,33 +226,26 @@ trigger_condition: "When"i when_clause
                  | "At"i at_clause
                  | "Raid"i "—"i raid_clause
 
+// Shared trigger events used by both when_clause and whenever_clause
+trigger_event: entity "enters"i
+             | entity "enters the battlefield"i
+             | entity "attacks"i
+             | entity "dies"i
+             | "you cast"i spell_type
+
 // When clauses - grouped by category
-when_clause: // Enters the battlefield
-           | "this creature enters"i
+when_clause: trigger_event
+           // Enters (when-specific)
            | "this Equipment enters"i
-           | "this enchantment enters"i
-           | "this land enters"i
-           | "this artifact enters"i
-           | "~ enters"i
-           | entity "enters the battlefield"i
-           | entity "enters"i
            | "~ or another nontoken" creature_type "you control enters"i
 
-           // Attacks
-           | "this creature attacks"i
-           | "~ attacks"i
-
-           // Dies/graveyard
-           | entity "dies"i
-           | "this creature dies"i
-           | "this creature dies"i "," if_clause
-           | "~ dies"i
+           // Dies/graveyard (when-specific)
+           | entity "dies"i "," if_clause
            | entity "is put into a graveyard from the battlefield"i
            | "this creature enters or dies"i
            | "this enchantment enters or dies"i
 
-           // Spell-related
-           | "you cast"i spell_type
+           // Spell-related (when-specific)
            | "it was kicked"i
            | "this spell was kicked"i
 
@@ -264,10 +257,8 @@ when_clause: // Enters the battlefield
            | "you do"i
 
 // Whenever clauses - grouped by category
-whenever_clause: // Combat-related
-               | "this creature attacks"i
-               | "~ attacks"i
-               | entity "attacks"i
+whenever_clause: trigger_event
+               // Combat-related (whenever-specific)
                | entity "blocks"i
                | entity "becomes blocked"i
                | entity "deals combat damage to"i entity
@@ -299,10 +290,9 @@ whenever_clause: // Combat-related
                | "~ enters or attacks"i
                | entity "enters or attacks"i
 
-               // Enters battlefield
+               // Enters battlefield (whenever-specific)
                | "a creature you control enters"i
                | entity "you control enters"i
-               | entity "enters"i
                | "another creature you control enters"i
                | "another"i creature_type "you control enters"i
                | "another nontoken"i creature_type "you control enters"i
@@ -310,8 +300,7 @@ whenever_clause: // Combat-related
                | "a creature with power"i NUMBER "or greater enters the battlefield under your control"i
                | "a creature you control with power"i NUMBER "or greater enters"i
 
-               // Dies
-               | entity "dies"i
+               // Dies (whenever-specific)
                | entity "you control dies"i
                | "this creature or another"i entity "dies"i
                | entity "or"i entity "dies"i
@@ -319,8 +308,7 @@ whenever_clause: // Combat-related
                | "a creature an opponent controls dies"i
                | "another nontoken creature dies"i
 
-               // Spell casting
-               | "you cast"i spell_type
+               // Spell casting (whenever-specific)
                | "you cast"i spell_type "during"i cast_timing
                | "an opponent casts"i spell_type
                | "an opponent casts"i spell_type "," "that player"i /[^.]+/
@@ -438,23 +426,29 @@ static_ability: // Granting abilities: entity_grant verb ability [duration] [rem
 // Entity that is granted an ability or stat modification
 entity_grant: "You"
             | entity
-            | "Other"i creature_type "you control"
-            | "Other"i creature_type_plural "you control"
-            | "Other"i creature_type "creatures you control"i
-            | "Other"i creature_type "you control"i "with"i ability_granted
-            | "Other creatures you control"i
-            | "Other creatures you control"i "with"i ability_granted
-            | "Other creatures you control with flying"i
-            | "Creatures you control"i
+            // "Other X you control [with Y]"
+            | "Other"i entity_grant_type "you control"i entity_grant_with?
+            | "Other creatures you control"i entity_grant_with?
+            // "Creatures you control [with Y]"
+            | "Creatures you control"i entity_grant_with?
             | "Attacking creatures you control"i
-            | "Creatures you control"i "with"i counter "on them"i
-            | "Creatures you control"i "with"i counter_type "counters on them"i
-            | entity "of the chosen type"i
-            | entity "of the chosen color"i
-            | "Each other"i creature_type "you control"
-            | "Each other"i creature_type_plural "you control"i
+            // "TYPE_PLURAL you control"
             | creature_type_plural "you control"i
-            | entity "of the chosen type"i "you control"i
+            // "Each other X you control"
+            | "Each other"i entity_grant_type "you control"i
+            // Chosen type/color qualifiers
+            | entity "of the chosen type"i "you control"i?
+            | entity "of the chosen color"i
+
+// Entity grant subject type (creature_type with optional plural/creatures suffix)
+entity_grant_type: creature_type
+                 | creature_type_plural
+                 | creature_type "creatures"i
+
+// Optional "with" qualifier for entity_grant
+entity_grant_with: "with"i ability_granted
+                 | "with"i counter "on them"i
+                 | "with"i counter_type "counters on them"i
 
 // Spell type descriptions (for cost reduction patterns)
 spell_type_desc: "Instant and sorcery spells"i
@@ -519,24 +513,11 @@ additional_cost_action: "sacrifice"i sacrifice_target
 
 // ==================== ENTERS ABILITIES ====================
 // Consolidated enters abilities
-enters_ability: // General enters ability
-              | entity "enters"i enters_location? enters_condition?
-              | "This creature enters"i enters_location? enters_condition?
-              | "This land enters"i enters_location? enters_condition?
-              | "This artifact enters"i enters_location? enters_condition?
+enters_ability: entity "enters"i enters_location? enters_condition?
               | permanent_enters_ability
               | entity "enters"i enters_location? counter_condition
-              // Bare enters statements (for lands that enter tapped)
-              | "This land enters"i
-              | "This creature enters"i
-              | "This artifact enters"i
-              // Enters with counter shorthand: "This creature enters a +1/+1 counter on it"
-              | entity "enters"i counter "on it"i
-              | "This creature enters"i counter "on it"i
-              | "This land enters"i counter "on it"i
-              // "enters an additional counter on it for each"
+              | entity "enters"i counter "on it"i for_each_clause?
               | entity "enters"i "an additional"i counter_type "counter on it"i for_each_clause
-              | entity "enters"i counter "on it"i for_each_clause
 
 // Permanent enters ability (for lands and artifacts)
 permanent_enters_ability: permanent_self enters_condition_simple? "."?
@@ -1117,7 +1098,7 @@ planeswalker_effect: // General effects
                    // Compound planeswalker effects
                    | compound_effect
                    | add_mana_effect "."? exile_top_effect
-                   | create_token_effect
+                   | create_effect
 
 // Exile top effect
 exile_top_effect: "Exile the top"i NUMBER "cards of your library"i "." "Choose one"i "." "You may play that card this turn"i
@@ -1280,10 +1261,16 @@ create_effect: "create"i token
              | for_each_clause "," "create"i token
 
 // Token copy
-token_copy: "a token that's a copy of target"i entity token_copy_suffix?
-          | "a token that's a copy of"i entity
+token_copy: "a token that's a copy of"i token_copy_target token_copy_exception? token_copy_suffix?
 
-// Token copy suffix
+token_copy_target: "target"i entity
+                 | "target creature"i
+                 | "target creature you control"i
+                 | "another target"i target_description "you control"i
+                 | entity
+
+token_copy_exception: "," "except it has"i ability_granted "and"i QUOTED_TEXT
+
 token_copy_suffix: "."? "If this spell was kicked"i "," "create five of those tokens instead"i
 
 // Draw effect
@@ -1292,10 +1279,6 @@ draw_effect: draw_verb NUMBER? "card"i NUMBER?
            | entity draw_verb NUMBER? "card"i NUMBER?
            | entity draw_verb NUMBER "cards"i
            | "you draw a card and you lose"i NUMBER "life"i
-           | "draw a card for each"i entity
-           | "draw a card for each"i entity "you control"i
-           | "draw a card for each"i entity "you control with"i counter "on it"i
-           | "draw a card for each"i entity "in"i zone
            | "draw a card"i for_each_clause
 
 // Draw verb
@@ -1303,15 +1286,14 @@ draw_verb: "draw"i | "you draw"i | "draws"i
 
 // Life change effect
 life_change_effect: life_change_verb NUMBER "life"i for_each_clause?
-                  | "each opponent loses"i life_amount
+                  | "each opponent loses"i life_amount life_change_suffix?
                   | entity life_change_verb life_amount where_clause?
-                  // "loses N life unless..."
-                  | "each opponent loses"i life_amount "unless that player"i /[^.]+/
                   | entity life_change_verb life_amount "unless"i /[^.]+/
-                  | "that player"i "loses"i life_amount
                   | "you gain that much life"i
-                  // "Each opponent loses X life. You gain life equal to the life lost this way"
-                  | "each opponent loses"i NUMBER "life"i "." "You gain life equal to the life lost this way"i
+
+// Suffix for "each opponent loses" pattern
+life_change_suffix: "unless that player"i /[^.]+/
+                  | "." "You gain life equal to the life lost this way"i
 
 // Life change verb
 life_change_verb: "gain"i | "lose"i | "gains"i | "loses"i | "you gain"i | "you lose"i
@@ -1455,23 +1437,13 @@ modify_creature_effect: // Subject gets stat [and gains/has ability]
                       | "Double target creature's power"i duration?
 
 // Subjects that use "get/gets" + stat_modifier
-modify_subject_stat: "creatures you control get"i
-                   | "target creature gets"i
-                   | "target creature you control gets"i
-                   | target "gets"i
-                   | entity "get"i
-                   | entity "gets"i
-                   | "Equipped creature"i "gets"i
+modify_subject_stat: target ("gets"i | "get"i)
+                   | entity ("gets"i | "get"i)
 
 // Subjects that use "gain/gains" + ability_granted
-modify_subject_ability: "creatures you control gain"i
-                      | "target creature gains"i
-                      | "permanents you control gain"i
-                      | "that creature gains"i
-                      | "another target"i entity "gains"i
-                      | target "gains"i
-                      | entity "gain"i
-                      | entity "gains"i
+modify_subject_ability: "another target"i entity "gains"i
+                      | target ("gains"i | "gain"i)
+                      | entity ("gains"i | "gain"i)
 
 // Optional combined: stat pattern followed by ability grant
 modify_stat_combined: "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_granted
@@ -1726,18 +1698,6 @@ may_action: "put"i entity "onto the battlefield"i
 // Gain life effect
 gain_life_effect: "gain"i NUMBER "life"i
 
-// Create token effect
-create_token_effect: "create"i token
-                   | "create"i "a token that's a copy of target"i entity
-                   | "create"i "a token that's a copy of target"i entity "."? "If this spell was kicked"i "," "create five of those tokens instead"i
-                   | "create"i "a token that's a copy of target creature"i "."? "If this spell was kicked"i "," "create five of those tokens instead"i
-                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
-                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "Create five of those tokens instead"i
-                   | "Create a token that's a copy of target creature"i
-                   | "Create a token that's a copy of target creature you control"i
-             | "create a token that's a copy of another target"i target_description "you control"i
-                   | "Create a token that's a copy of target creature you control, except it has haste and"i QUOTED_TEXT
-                   | "Create a token that's a copy of target creature"i "." "If this spell was kicked"i "," "create five of those tokens instead"i
 
 // ==================== TOKENS ====================
 // Tokens
@@ -1754,6 +1714,7 @@ token: "a"i token_description
 for_each_clause: "for each"i entity
                | "for each"i entity "in"i zone
                | "for each"i entity "you control"i
+               | "for each"i entity "you control with"i counter "on it"i
                | "for each"i card_type "card in"i zone
                | "for each"i creature_type "you control"i
                | "for each"i "land you control"i
