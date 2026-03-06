@@ -1806,17 +1806,32 @@ gain_life_effect: "gain"i NUMBER "life"i
 
 
 // ==================== TOKENS ====================
-// Tokens
-token: "a"i token_description
-     | "a tapped"i token_description
-     | NUMBER token_description
-     | counter_amount token_description
-     | "a tapped"i creature_token_base "token"i for_each_clause?
-     // Named/legendary tokens: "Scion of the Deep, a legendary 8/8 blue Octopus creature token"
-     | /[A-Z][a-zA-Z ]+/ "," "a legendary"i token_description
-     | /[A-Z][a-zA-Z ]+/ "," "a"i token_description
+// Tokens use the object_descriptor system for their core description.
+// The object_descriptor handles the ordered characteristics (P/T, color, subtypes, types)
+// and ends with "token"/"tokens" via the object_kind layer in obj_type_core.
 
-// For each clause (reusable)
+token: ("a"i | "an"i) object_descriptor token_suffix?
+     | ("a"i | "an"i) "tapped"i object_descriptor token_suffix?
+     | NUMBER object_descriptor token_suffix?
+     | counter_amount object_descriptor token_suffix?
+     // Named/legendary tokens: "Scion of the Deep, a legendary 8/8 blue Octopus creature token"
+     | /[A-Z][a-zA-Z ]+/ "," ("a"i | "an"i) object_descriptor token_suffix?
+     // Copy tokens (unique syntax, not part of object_descriptor)
+     | ("a"i | "an"i) "token that's a copy of"i entity ("except"i token_exception)?
+     | ("a"i | "an"i) "copy of target"i entity
+     | ("a"i | "an"i) "copy of"i entity
+     // Variable count tokens (kept as special case due to complex trailing syntax)
+     | ("a"i | "an"i) "number of"i object_descriptor "equal to"i entity
+     | ("a"i | "an"i) "number of"i object_descriptor "equal to other creatures you control named"i entity
+
+// Optional suffix after the token descriptor
+token_suffix: for_each_clause
+            | "with"i ability_granted
+            | "with"i QUOTED_TEXT
+            | "named"i /[^.]+/
+            | "," "where X is"i /[^.]+/
+            | artifact_token_reminder
+
 // For each clause (reusable)
 for_each_clause: "for each"i for_each_subject
 
@@ -1847,36 +1862,6 @@ for_each_control: "you control"i
                 | "you already control"i
                 | "you control of the chosen type"i
                 | "you control with"i counter "on it"i
-
-// Color specification for tokens (single or multi-color)
-color_spec: color
-          | color "and"i color
-
-// Token descriptions
-// Creature tokens: factor out common prefix "N/N [color] Type+ creature token(s)"
-token_description: creature_token_base ("token"i | "tokens"i) creature_token_suffix?
-                 // Artifact tokens
-                 | "Food"i ("token"i | "tokens"i) artifact_token_reminder?
-                 | "Treasure"i ("token"i | "tokens"i) artifact_token_reminder?
-                 | "Clue"i ("token"i | "tokens"i) artifact_token_reminder?
-                 | "Gold"i ("token"i | "tokens"i) artifact_token_reminder?
-                 // Copy tokens
-                 | "token that's a copy of"i entity ("except"i token_exception)?
-                 | "copy of target"i entity
-                 | "copy of"i entity
-                 // Variable count tokens
-                 | "number of"i creature_token_base "tokens equal to"i entity
-                 | "number of"i NUMBER "/" NUMBER color? creature_type+ "creature tokens equal to other creatures you control named"i entity
-
-// Common creature token prefix: "N/N [color] Type+ creature"
-creature_token_base: NUMBER "/" NUMBER color_spec? creature_type+ "creature"i
-
-// Optional suffix after "creature token(s)"
-creature_token_suffix: for_each_clause
-                     | "with"i ability_granted
-                     | "with"i QUOTED_TEXT
-                     | "named"i /[^.]+/
-                     | "," "where X is"i /[^.]+/
 
 // Token exceptions
 token_exception: "it's"i token_exception_property
@@ -2613,6 +2598,124 @@ creature_type_plural: "Cats"i
                     | "Saprolings"i
                     | "Slivers"i
                     | "Walls"i
+
+// ==================== OBJECT DESCRIPTOR BUILDING BLOCKS ====================
+// These are the clean, separated building blocks for the generalized object
+// descriptor system. They're based on the comp rules (CR 205, 109, 105).
+// These coexist with the existing type rules during the migration period.
+
+// --- Supertypes (CR 205.4a) ---
+// Supertypes are independent of card type and subtype
+supertype: "legendary"i | "basic"i | "snow"i
+
+// --- Card Type Words (CR 205.2a - gameplay-relevant subset) ---
+// The actual card types, not mixed with subtypes or object kinds
+card_type_word: "creature"i | "artifact"i | "enchantment"i | "instant"i
+             | "sorcery"i | "land"i | "planeswalker"i | "battle"i | "kindred"i
+
+// --- Negated Card Types ---
+// "noncreature", "nonland", etc. are single tokens (no space between non and type)
+negated_card_type: "noncreature"i | "nonland"i | "nonartifact"i
+                 | "nonenchantment"i | "nonplaneswalker"i | "noninstant"i
+                 | "nonsorcery"i
+
+// --- Negated Supertypes ---
+negated_supertype: "nonbasic"i | "nonlegendary"i | "nonsnow"i
+
+// --- Negated Object Kinds ---
+negated_object_kind: "nontoken"i | "nonpermanent"i
+
+// --- Artifact Subtypes (CR 205.3g) ---
+artifact_subtype: "Equipment"i | "Food"i | "Treasure"i | "Clue"i | "Gold"i
+                | "Vehicle"i | "Blood"i | "Incubator"i | "Map"i | "Powerstone"i
+                | "Bobblehead"i | "Contraption"i | "Fortification"i | "Junk"i
+
+// --- Enchantment Subtypes (CR 205.3h) ---
+enchantment_subtype: "Aura"i | "Saga"i | "Curse"i | "Case"i | "Class"i
+                   | "Role"i | "Room"i | "Rune"i | "Shard"i | "Shrine"i
+                   | "Background"i | "Cartouche"i
+
+// --- Land Subtypes (CR 205.3i) ---
+land_subtype: "Plains"i | "Island"i | "Swamp"i | "Mountain"i | "Forest"i
+            | "Gate"i | "Cave"i | "Desert"i | "Lair"i | "Locus"i
+            | "Mine"i | "Power-Plant"i | "Sphere"i | "Tower"i | "Urza" APOSTROPHE "s"i
+
+// --- Spell Subtypes (CR 205.3k) ---
+spell_subtype_word: "Adventure"i | "Arcane"i | "Lesson"i | "Omen"i | "Trap"i
+
+// --- All Subtypes (unified) ---
+// Combines all subtype categories. creature_type is the existing rule (CR 205.3m).
+subtype: creature_type | artifact_subtype | enchantment_subtype | land_subtype | spell_subtype_word
+
+// --- Object Kinds ---
+// These indicate what kind of game object, NOT card types (CR 110, 112, etc.)
+// "permanent" = on battlefield, "card" = in zone, "spell" = on stack, "token" = token
+// Includes both singular and plural forms since the grammar doesn't enforce number agreement
+object_kind: "permanent"i | "card"i | "spell"i | "token"i | "tokens"i | "source"i
+           | "permanents"i | "cards"i | "spells"i | "sources"i
+
+// --- Status Modifiers ---
+// States that modify object descriptions but are NOT characteristics (CR 109.3)
+status_modifier: "tapped"i | "untapped"i
+               | "attacking"i | "blocking"i | "attacking or blocking"i
+               | "enchanted"i | "equipped"i
+               | "face-down"i | "face-up"i
+
+// --- Negated Subtypes ---
+// Subtype negation uses a hyphen: "non-Aura", "non-Angel", "non-Human"
+// Listed explicitly since "non-X" is a single token
+negated_subtype: "non-Aura"i | "non-Angel"i | "non-Human"i | "non-Equipment"i
+               | "non-Dragon"i | "non-Goblin"i | "non-Elf"i | "non-Zombie"i
+               | "non-Vampire"i | "non-Wizard"i | "non-Soldier"i | "non-Beast"i
+               | "non-Warrior"i | "non-Cat"i | "non-Dog"i | "non-Bird"i
+               | "non-Snake"i | "non-Elemental"i | "non-Spirit"i | "non-Demon"i
+
+// ==================== CORE OBJECT DESCRIPTOR ====================
+// The generalized, compositional system for describing game objects.
+// Follows canonical MTG ordering: Supertype -> P/T -> Color -> Status -> Subtype(s) -> Type(s) -> Kind
+//
+// Examples:
+//   "1/1 green Elf Druid creature token"  -> pt + color + subtypes + type + kind
+//   "legendary permanent"                  -> supertype + kind
+//   "noncreature spell"                    -> negated_type + kind
+//   "artifact, enchantment, or land"       -> type_disjunction
+//   "non-Aura enchantment"                -> negated_subtype + type
+//   "enchanted creature"                   -> status + type
+//   "Food token"                           -> subtype + kind
+//   "nonbasic land"                        -> negated_supertype + type
+//   "nontoken creature"                    -> negated_kind + type
+
+// Core object descriptor: ordered characteristic layers
+// Not all layers will be present; context rules ensure meaningful combinations
+// Ordering follows MTG convention: Supertype -> P/T -> Color -> Status -> Subtypes -> Types -> Kind
+object_descriptor: obj_supertype? obj_pt? obj_color? obj_status? obj_subtypes? obj_type_core
+
+// Supertype layer (comes first, matching type line order: "Legendary Creature")
+obj_supertype: supertype+
+
+// P/T layer (used in token creation and animation effects)
+obj_pt: NUMBER "/" NUMBER
+
+// Color layer (single or multi-color)
+obj_color: color ("and"i color)*
+
+// Status modifier layer
+obj_status: status_modifier
+
+// Subtype layer (one or more subtypes in sequence: "Elf Druid", "Gnome")
+obj_subtypes: subtype+
+
+// Type core: the card type(s) and/or object kind, with negation and disjunction support
+// Note: "Food token" is handled by obj_subtypes=Food + obj_type_core=object_kind(token)
+obj_type_core: card_type_word+                                                          // "creature", "artifact creature"
+             | card_type_word ("," card_type_word)* ","? "or"i card_type_word            // "artifact, enchantment, or land"
+             | negated_card_type card_type_word*                                         // "noncreature", "nonland creature"
+             | negated_card_type object_kind                                             // "noncreature spell", "nonland permanent"
+             | negated_supertype card_type_word                                          // "nonbasic land"
+             | negated_subtype card_type_word                                            // "non-Aura enchantment"
+             | negated_object_kind card_type_word?                                       // "nontoken creature", "nontoken"
+             | card_type_word+ object_kind                                               // "creature token", "artifact creature token"
+             | object_kind                                                               // "permanent", "spell", "card", "token"
 
 // ==================== COLORS ====================
 // Colors
