@@ -1945,10 +1945,11 @@ for_each_subject: // Entity or type you control (with optional qualifier)
                 | entity "in"i zone
                 | entity for_each_control
                 | creature_type for_each_control
+                | basic_land_type for_each_control
                 | permanent_type for_each_control
                 | "creature you control with"i counter "on it"i
                 | "land you control"i
-                | "basic"i creature_type "you control"i
+                | "basic"i basic_land_type "you control"i
                 | "attacking"i creature_type "you control"i
                 | "attacking creature"i
                 // Card type references
@@ -2679,12 +2680,6 @@ creature_type: "Advisor"i
              | "Yeti"i
              | "Zombie"i
              | "Zubera"i
-             // Land subtypes (used in "for each Forest you control" etc.)
-             | "Forest"i
-             | "Island"i
-             | "Mountain"i
-             | "Plains"i
-             | "Swamp"i
              | "Gate"i
 
 // Plural creature types (common in "Other Xs you control" patterns)
@@ -2758,6 +2753,9 @@ artifact_subtype: "Equipment"i | "Food"i | "Treasure"i | "Clue"i | "Gold"i
 enchantment_subtype: "Aura"i | "Saga"i | "Curse"i | "Case"i | "Class"i
                    | "Role"i | "Room"i | "Rune"i | "Shard"i | "Shrine"i
                    | "Background"i | "Cartouche"i
+
+// --- Basic Land Types (CR 305.6) ---
+basic_land_type: "Plains"i | "Island"i | "Swamp"i | "Mountain"i | "Forest"i
 
 // --- Land Subtypes (CR 205.3i) ---
 land_subtype: "Plains"i | "Island"i | "Swamp"i | "Mountain"i | "Forest"i
