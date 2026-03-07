@@ -2128,35 +2128,22 @@ exile_target: "it"i
 tap_target: "an untapped"i permanent_type "you control"i
           | NUMBER "untapped"i permanent_type "you control"i
 
-// Search targets
-search_target: "a"i card_type "card"i
-             | "a card with mana value"i comparison_operator NUMBER
-             | "a"i creature_type "card"i
-             | "a basic land card"i
-             | "a Gate card"i
-             | "a land card"i
-             | "a"i color "card"i
-             | "a"i color card_type "card"i
-             | "a"i color creature_type "card"i
-             | "a card with"i ability_granted
-             | "a"i permanent_type "card with"i ability_granted
-             | "a card named"i /[A-Za-z, ]+/
-             // "a TYPE card with mana value N [or greater/less]"
-             | "a"i card_type "card with mana value"i NUMBER
-             | "a"i card_type "card with mana value"i NUMBER "or greater"i
-             | "a"i card_type "card with mana value"i NUMBER "or less"i
-             | "a card"i
-             // "a TYPE card" (catches "an instant or sorcery card")
-             | "an"i card_type "card"i
-             | "an"i card_type "card with mana value"i NUMBER
-             // Compound search: "an instant card or a card with flash"
-             | "an"i card_type "card or a card with"i ability_granted
-             | "a"i card_type "card or a card with"i ability_granted
-             // Plural search targets (used with search_quantity)
-             | "basic land cards"i
-             | card_type "cards"i
+// Search targets - uses object_descriptor for the core description
+// The "card"/"cards" ending is handled by object_kind inside obj_type_core
+// Examples: "a creature card", "a basic land card", "a green Elf card",
+//           "an instant or sorcery card", "basic land cards"
+search_target: ("a"i | "an"i) object_descriptor search_qualifier?
+             // Compound: "an instant card or a card with flash"
+             | ("a"i | "an"i) object_descriptor "or"i ("a"i | "an"i) object_descriptor search_qualifier?
+             // Plural (no article): "basic land cards", "creature cards"
+             | object_descriptor search_qualifier?
              // Compound plural: "basic land cards and/or Gate cards"
-             | "basic land cards and/or"i creature_type "cards"i
+             | object_descriptor "and/or"i object_descriptor
+
+// Qualifiers that follow the core description in search targets
+search_qualifier: "with mana value"i comparison_operator? NUMBER ("or greater"i | "or less"i)?
+                | "with"i ability_granted
+                | "named"i /[A-Za-z, ]+/
 
 // ==================== ENTITIES ====================
 // Entities - organized by semantic category
@@ -2709,6 +2696,7 @@ obj_subtypes: subtype+
 // Note: "Food token" is handled by obj_subtypes=Food + obj_type_core=object_kind(token)
 obj_type_core: card_type_word+                                                          // "creature", "artifact creature"
              | card_type_word ("," card_type_word)* ","? "or"i card_type_word            // "artifact, enchantment, or land"
+             | card_type_word ("," card_type_word)* ","? "or"i card_type_word object_kind // "instant or sorcery card"
              | negated_card_type card_type_word*                                         // "noncreature", "nonland creature"
              | negated_card_type object_kind                                             // "noncreature spell", "nonland permanent"
              | negated_supertype card_type_word                                          // "nonbasic land"
