@@ -1354,11 +1354,7 @@ create_effect: "create"i token
 // Token copy
 token_copy: "a token that's a copy of"i token_copy_target token_copy_exception? token_copy_suffix?
 
-token_copy_target: "target"i entity
-                 | "target creature"i
-                 | "target creature you control"i
-                 | "another target"i target_description "you control"i
-                 | entity
+token_copy_target: target
 
 token_copy_exception: "," "except it has"i ability_granted "and"i QUOTED_TEXT
 
@@ -1556,12 +1552,10 @@ modify_creature_effect: // Subject gets stat [and gains/has ability]
 
 // Subjects that use "get/gets" + stat_modifier
 modify_subject_stat: target ("gets"i | "get"i)
-                   | entity ("gets"i | "get"i)
 
 // Subjects that use "gain/gains" + ability_granted
 modify_subject_ability: "another target"i entity "gains"i
                       | target ("gains"i | "gain"i)
-                      | entity ("gains"i | "gain"i)
 
 // Optional combined: stat pattern followed by ability grant or restriction
 modify_stat_combined: "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_granted
