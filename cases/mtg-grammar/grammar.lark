@@ -1281,10 +1281,7 @@ simple_effect: // Information patterns
              | "The flashback cost is equal to that card" APOSTROPHE "s mana cost"i
 
 // Restriction effect (entity can't do action, used as an effect in activated/triggered abilities)
-restriction_effect: target "can't"i action duration?
-                  | entity "can't"i action duration?
-                  | "Players can't"i action
-                  | entity "can't"i action
+restriction_effect: (target | "Players"i) "can't"i action duration?
 
 // Damage amount
 damage_amount: NUMBER "damage"i
@@ -1443,15 +1440,12 @@ destroy_effect: "destroy"i target
 destroy_qualifier: "with mana value"i /[^.]+/
 
 // Exile effect
-exile_effect: "exile"i target
+exile_effect: "exile"i target exile_until_clause?
             | "exile all"i target_description
             | "exile"i target "from"i zone "with"i counter "on it"i
             | "exile"i "the top"i NUMBER "cards of your library"i
             | "exile"i "the top card of each player's library"i
-            | "exile"i target "until"i entity "leaves the battlefield"i
-            | "exile up to"i NUMBER "target"i target_description "from"i zone
-            | "exile up to"i NUMBER "target"i target_description
-            | "exile up to"i NUMBER "target"i target_description "from a single graveyard"i
+            | "exile up to"i NUMBER "target"i target_description exile_from_clause? exile_until_clause?
             // Exile a zone (e.g., "exile target player's graveyard")
             | "exile"i "target player" APOSTROPHE "s"i zone_type
             // Exile each opponent's graveyard
@@ -1465,14 +1459,15 @@ exile_effect: "exile"i target
             // Exile target card from a graveyard with condition
             | "exile"i target "from"i zone entity?
             | "exile"i target "from a graveyard that was put there this turn"i
-            // Exile up to N target X until Y leaves
-            | "exile up to"i NUMBER "target"i target_description "until"i entity "leaves the battlefield"i
+
+// Optional clauses for exile
+exile_from_clause: "from"i zone
+                 | "from a single graveyard"i
+exile_until_clause: "until"i entity "leaves the battlefield"i
 
 // Search effect
 // Search effect (consolidated: search + quantity? + target + action chain)
-search_effect: "search your library for"i search_quantity? search_target ("," search_action)* ("." search_sentence_action)*
-             // "search their library for" (opponent/player searching)
-             | "search their library for"i search_quantity? search_target ("," search_action)* ("." search_sentence_action)*
+search_effect: "search"i ("your"i | "their"i) "library for"i search_quantity? search_target ("," search_action)* ("." search_sentence_action)*
              // Special Gate search with win condition
              | "Search your library for a Gate card"i "," "put it onto the battlefield"i "," "then shuffle"i "." "If you control ten or more Gates with different names"i "," "you win the game"i
 
@@ -1576,14 +1571,11 @@ modify_stat_combined: "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_gra
 modify_ability_combined: "and gets"i stat_modifier
 
 // Return effect (consolidated: return + what + optional from + destination + optional state/timing)
-return_effect: // Return target/entity to a zone
-             | "return"i target "to"i zone
+return_effect: // Return target/entity to a zone (with optional battlefield modifiers)
+             | "return"i target "to"i zone return_under_control? return_with_clause? timing_clause?
              | "return up to"i NUMBER "other target"i target_description "you control"i "to"i zone
              // "Choose N target X. Return those ..."
              | "Choose"i NUMBER "target"i target_description "controlled by different players"i "." "Return those"i target_description "to their owners" APOSTROPHE "hands"i
-             // Return target/entity to the battlefield with optional control/state/timing
-             | "return"i target "to the battlefield"i return_under_control? return_with_clause? timing_clause?
-             | "return"i entity "to the battlefield"i return_under_control? return_with_clause? timing_clause?
              // Return card references from zone to zone/battlefield
              | "return"i return_card_ref "from"i zone "to"i zone
              | "return"i return_card_ref "from"i zone "to the battlefield"i return_under_control? tapped? return_with_clause?
