@@ -243,14 +243,11 @@ trigger_event: entity "enters"i
 
 // When clauses - grouped by category
 when_clause: trigger_event
-           // Enters (when-specific)
-           | "this Equipment enters"i
 
            // Dies/graveyard (when-specific)
            | entity "dies"i "," if_clause
            | entity "is put into a graveyard from the battlefield"i
-           | "this creature enters or dies"i
-           | "this enchantment enters or dies"i
+           | entity "enters or dies"i
 
            // Spell-related (when-specific)
            | "it was kicked"i
@@ -260,11 +257,7 @@ when_clause: trigger_event
            | entity "enters with"i counter_amount? counter "on it"i
            | entity "enters the battlefield with"i counter_amount? counter "on it"i
 
-           // Artifact/enchantment enters
-           | "this artifact enters"i
-           | "this Aura enters"i
-
-           // Enchanted creature events (attacks/dies covered by trigger_event via entity)
+           // Sacrifice trigger
            | "you sacrifice this Aura"i
 
            // When conditions with supplementary clauses
@@ -286,8 +279,7 @@ whenever_clause: trigger_event
                | entity "deals combat damage to"i entity
                | "a creature deals combat damage to a player"i
                | "a creature you control with"i ability_granted "deals combat damage to"i entity
-               | "this creature attacks while you control a creature with power 4 or greater"i
-               | "~ attacks while you control a creature with power"i NUMBER "or greater"i
+               | entity "attacks while you control a creature with power"i NUMBER "or greater"i
                | "you attack with"i NUMBER "or more creatures"i
                | color creature_type "you control attacks"i
                | "a" color creature_type "you control attacks"i
@@ -2265,12 +2257,7 @@ search_qualifier: "with mana value"i comparison_operator? NUMBER ("or greater"i 
 // ==================== ENTITIES ====================
 // Entities - organized by semantic category
 entity: // Self-referential
-      | "this creature"i
-      | "this permanent"i
-      | "this artifact"i
-      | "this land"i
-      | "this enchantment"i
-      | "this token"i
+      | "this"i permanent_type
       | "this spell"i
       | "this card"i
       | "it"i
