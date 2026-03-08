@@ -1460,18 +1460,13 @@ destroy_effect: "destroy"i target
               | "destroy all"i entity
               | "destroy all"i color entity
               | "destroy target"i entity "or"i entity
-              | "destroy target"i permanent_type "," permanent_type "," "or"i permanent_type destroy_condition?
-              | "destroy target"i permanent_type "or"i permanent_type destroy_condition?
+              | "destroy target"i permanent_type "," permanent_type "," "or"i permanent_type object_condition?
+              | "destroy target"i permanent_type "or"i permanent_type object_condition?
               | "Destroy target"i permanent_type "or"i permanent_type "an opponent controls"i "." "You lose life equal to that permanent's mana value"i
               // "destroy target creature with CONDITION"
-              | "destroy target"i target_description destroy_condition
+              | "destroy target"i target_description object_condition
               // "Destroy target X and all other Y with the same name as that Z"
               | "destroy"i target "and all other permanents with the same name as that permanent"i
-
-// Destroy condition (optional qualifier on destroy targets)
-destroy_condition: "an opponent controls"i
-                 | "with"i ability_granted
-                 | "with"i stat_condition
 
 // Extended destroy qualifier (for "destroy each X with/whose...")
 destroy_qualifier: "with mana value"i /[^.]+/
@@ -2149,60 +2144,51 @@ target: "target"i target_description
       | entity
 
 // Target descriptions
-target_description: creature_type
-                  | creature_type "you control"i
-                  | creature_type creature_condition?
-                  | permanent_type
+target_description: creature_type object_condition?
+                  | permanent_type object_condition?
                   | "player"i
                   | "opponent"i
-                  | "creature"i creature_condition?
-                  | "creatures"i creature_condition?
-                  | "permanent"i permanent_condition?
-                  | "spell"i spell_condition?
+                  | "creature"i object_condition?
+                  | "creatures"i object_condition?
+                  | "permanent"i object_condition?
+                  | "spell"i object_condition?
                   | combined_type
-                  | "nonland permanent"i permanent_condition?
-                  | "creature you control"i
+                  | "nonland permanent"i object_condition?
                   | "player or planeswalker"i
                   | "attacking or blocking creature"i
                   | "attacking creature"i
-                  | "card"i card_condition?
-                  | "cards"i card_condition?
-                  | "tapped creature"i creature_condition?
-                  | "nonbasic land"i creature_condition?
+                  | "card"i object_condition?
+                  | "cards"i object_condition?
+                  | "tapped creature"i object_condition?
+                  | "nonbasic land"i object_condition?
                   // Typed cards (for targeting cards in zones)
-                  | card_type "card"i card_condition?
-                  | card_type "or"i card_type "card"i card_condition?
-                  | creature_type "card"i card_condition?
-                  | creature_type card_type "card"i card_condition?
+                  | card_type "card"i object_condition?
+                  | card_type "or"i card_type "card"i object_condition?
+                  | creature_type "card"i object_condition?
+                  | creature_type card_type "card"i object_condition?
                   // Plural target descriptions
                   | "nonland permanents"i
                   | "permanents"i
 
-// Conditions for targets
-creature_condition: "you control"i
-                  | "you don't control"i
-                  | "you own"i
-                  | "an opponent controls"i
-                  | "with"i ability_granted
-                  | "with power"i comparison_operator NUMBER
-                  | "with toughness"i comparison_operator NUMBER
-                  | "with"i counter "on it"i
-
-permanent_condition: "you control"i
-                   | "an opponent controls"i
-                   | "with"i counter "on it"i
-                   | "attached to"i entity
-
-spell_condition: "you control"i
-               | "an opponent controls"i
-               | "with mana value"i comparison_operator NUMBER
-
-card_condition: "in"i zone
-              | "from your graveyard"i
-              | "from a graveyard"i
-              | "from a graveyard that was put there this turn"i
-              | "from"i zone
-              | "with mana value"i comparison_operator NUMBER
+// Conditions for targets (unified)
+// Replaces the former creature_condition, permanent_condition, spell_condition, card_condition
+object_condition: // Control/ownership
+                | "you control"i
+                | "you don't control"i
+                | "you own"i
+                | "an opponent controls"i
+                // Properties
+                | "with"i ability_granted
+                | "with"i stat_condition
+                | "with"i counter "on it"i
+                // Attachment
+                | "attached to"i entity
+                // Zone (for cards)
+                | "in"i zone
+                | "from your graveyard"i
+                | "from a graveyard"i
+                | "from a graveyard that was put there this turn"i
+                | "from"i zone
 
 // ==================== COSTS ====================
 // Costs - simple standalone cost patterns (used by activation_cost as base)
