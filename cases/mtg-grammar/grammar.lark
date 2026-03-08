@@ -309,8 +309,6 @@ whenever_clause: trigger_event
                // Enters battlefield (whenever-specific)
                | "a creature you control enters"i
                | entity "you control enters"i
-               | "another creature you control enters"i
-               | "another"i creature_type "you control enters"i
                | "another nontoken"i creature_type "you control enters"i
                | "a creature with power"i NUMBER "or greater enters the battlefield under your control"i
                | "a creature you control with power"i NUMBER "or greater enters"i
@@ -2140,12 +2138,9 @@ target_description: creature_type object_condition?
                   | permanent_type object_condition?
                   | "player"i
                   | "opponent"i
-                  | "creature"i object_condition?
                   | "creatures"i object_condition?
-                  | "permanent"i object_condition?
                   | "spell"i object_condition?
                   | combined_type
-                  | "nonland permanent"i object_condition?
                   | "player or planeswalker"i
                   | "attacking or blocking creature"i
                   | "attacking creature"i
@@ -2319,12 +2314,9 @@ entity: // Self-referential
       | "that"i creature_type
       | "that"i spell_type
       | "that"i card_type
-      | "that creature"i
-      | "that permanent"i
       | "that spell"i
       | "that card"i
       | "that creature or planeswalker"i
-      | "that land"i
       | "those creatures"i
       | "those"i target_description
       | "they"i
@@ -2340,7 +2332,8 @@ entity: // Self-referential
 
 // ==================== TYPES ====================
 // Permanent types
-permanent_type: "creature"i
+permanent_type: "permanent"i
+              | "creature"i
               | "artifact"i
               | "enchantment"i
               | "land"i
