@@ -1981,17 +1981,13 @@ condition_clause: control_condition
 // Control conditions ("you control X")
 control_condition: "you control"i entity
                  | "you control"i NUMBER "or more"i entity
-                 | "you control"i "a"i color "permanent"i
-                 | "you control"i "a"i permanent_type
-                 | "you control"i "a"i creature_type
-                 | "you control"i "another"i creature_type
-                 | "you control"i "another"i permanent_type
-                 | "you control a creature with power"i NUMBER "or greater"i
-                 | "you control another creature with power"i NUMBER "or greater"i
+                 | "you control"i "a"i color? (permanent_type | creature_type)
+                 | "you control"i "another"i (permanent_type | creature_type)
+                 | "you control"i ("a"i | "another"i) permanent_type "with"i stat_condition
                  | "you control"i NUMBER "or more"i "lands"i
                  | "you control"i NUMBER "or more"i permanent_type
                  | "you control"i NUMBER "or more"i "Gates with different names"i
-                 | "any player controls a"i color "permanent"i
+                 | "any player controls a"i color permanent_type
 
 // Life and resource conditions
 life_condition: "you have"i NUMBER "or more"i entity
@@ -2018,7 +2014,6 @@ cast_condition: "you cast"i spell_type "this turn"i
               | "you've cast"i NUMBER "or more instant and sorcery spells this turn"i
               | "you've cast"i "a"i color "spell this turn"i
               | "you've cast"i "another"i "spell this turn"i
-              | "you cast it from your hand"i
               | "you cast it from"i zone
               | "this spell was kicked"i
 
@@ -2048,12 +2043,8 @@ battlefield_condition: "there are"i NUMBER "or more"i entity "on the battlefield
                      | entity "have total power"i NUMBER "or greater"i
 
 // Counter conditions (on permanents)
-counter_condition_clause: entity "had"i counter "on it"i
-                        | entity "has"i counter "on it"i
-                        | "this creature has a"i counter "on it"i
-                        | "this creature has"i NUMBER "or more"i counter "on it"i
-                        | "this creature has"i NUMBER "or more +1/+1 counters on it"i
-                        // Generalized: "it/entity has N or more TYPE counters on it"
+counter_condition_clause: entity ("had"i | "has"i) counter "on it"i
+                        | entity "has"i NUMBER "or more"i counter "on it"i
                         | entity "has"i NUMBER "or more"i counter_type "counters on it"i
 
 // Resolution/ability timing conditions
@@ -2065,8 +2056,7 @@ mana_spend_condition: "that mana is spent on"i ("a"i | "an"i) creature_type? car
                     | "that mana is spent to cast"i ("a"i | "an"i) creature_type? card_type? "spell"i
 
 // Identity conditions (type/color checks)
-identity_condition: "it wasn't a"i creature_type
-                  | entity "wasn't a"i creature_type
+identity_condition: entity "wasn't a"i creature_type
                   | entity "is a"i creature_type
                   | entity "is a"i creature_type "card"i
                   | "it" APOSTROPHE "s a"i creature_type "card"i
