@@ -897,45 +897,27 @@ enchanted_ability: "Enchanted"i enchant_target enchanted_effect
 
 // Enchanted effect
 enchanted_effect: "gets"i stat_modifier enchanted_suffix?
-                | "gets"i stat_modifier "and"i ("has"i | "gains"i) (ability_granted | keyword) reminder_suffix?
                 | "has"i ability_granted reminder_text?
-                | "gets"i stat_modifier "for each"i entity
                 // Type transformation: "is a colorless land with ... and loses all other card types and abilities"
                 | "is a"i /[^.]+/ "and loses all other card types and abilities"i
                 // Restriction: "can't attack or block"
                 | "can't"i action
                 // Loses abilities and gains type
                 | "loses all abilities and"i /[^.]+/ reminder_text?
-                // Compound: "gets +X/+Y, has A and B, and gains C"
-                | "gets"i stat_modifier "," "has"i ability_granted "," "and gains"i type_addition
 
-// Enchanted suffix
-enchanted_suffix: ("and has"i | "and gains"i) ability_granted
+// Enchanted suffix (optional modifier after stat_modifier)
+enchanted_suffix: "and"i ("has"i | "gains"i) (ability_granted | keyword) reminder_suffix?
+                | "for each"i entity
+                | "," "has"i ability_granted "," "and gains"i type_addition
 
 // Enchant target - grouped by type
-enchant_target: // Basic permanent types
-              | "creature"i
-              | "player"i
-              | "permanent"i
-              | "land"i
-              | "artifact"i
-              | "enchantment"i
-              | "planeswalker"i
-
-              // Type variations
+enchant_target: "player"i
               | permanent_type
               | color permanent_type
-
-              // Combined types
               | combined_type
-              // Multi-type disjunction: "creature, land, or planeswalker"
-              | "creature"i "," "land"i "," "or planeswalker"i
-              | "creature"i "or"i "planeswalker"i
-
               // Qualified types
-              | "creature with"i ability_granted
-              | "creature with"i stat_condition
-              | "permanent"i
+              | permanent_type "with"i ability_granted
+              | permanent_type "with"i stat_condition
 
 // Stat condition
 stat_condition: stat_condition_type comparison_operator NUMBER
