@@ -455,8 +455,7 @@ static_ability: // Granting abilities: entity_grant verb ability [duration] [rem
               | entity "attacks each combat if able"i
 
               // Enter tapped effects
-              | entity "enter tapped"i
-              | entity "enters tapped"i
+              | entity ("enter"i | "enters"i) "tapped"i
 
               // Type addition effects
               | entity "has"i ability_granted "and gains"i type_addition
@@ -480,7 +479,7 @@ static_ability: // Granting abilities: entity_grant verb ability [duration] [rem
 // Entity that is granted an ability or stat modification
 entity_grant: "You"
             | entity
-            | "Each creature you control"i entity_grant_with?
+            | "Each"i permanent_type "you control"i entity_grant_with?
             | "Each"i creature_type "you control"i entity_grant_with?
             // "Other X you control [with Y]"
             | "Other"i entity_grant_type "you control"i entity_grant_with?
@@ -1668,9 +1667,7 @@ sacrifice_object: sacrifice_target
                 | NUMBER choice_sacrifice
 
 // Sacrifice with "of their choice" pattern
-choice_sacrifice: "a creature of their choice"i
-                | "a permanent of their choice"i
-                | "a"i permanent_type "of their choice"i
+choice_sacrifice: "a"i permanent_type "of their choice"i
                 | "creatures of their choice"i
                 | permanent_type "of their choice"i
                 | "a creature or planeswalker of their choice"i
@@ -1841,14 +1838,11 @@ may_effect: "you may"i may_action
 
 // May action (what can be done with "you may")
 may_action: "put"i entity "onto the battlefield"i
-          | "put"i entity "into your hand"i
-          | "put"i entity "into your graveyard"i
           | "put"i entity "into"i zone
           | "cast"i entity
           | "cast any number of spells from among those cards without paying their mana costs"i
           | "cast"i target entity "from"i zone duration?
-          | "cast"i "target"i creature_type card_type "card from"i zone duration?
-          | "cast"i "target"i card_type "card from"i zone duration?
+          | "cast"i "target"i creature_type? card_type "card from"i zone duration?
           | "play"i entity
           | "play that card"i duration?
           | "pay"i mana_cost
