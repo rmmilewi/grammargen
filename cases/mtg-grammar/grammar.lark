@@ -407,7 +407,6 @@ optional_may: "you may"i
 // If clause
 if_clause: "if"i condition_clause ","
          | "if"i "it was kicked"i ","
-         | "if"i "this spell was kicked"i ","
 
 // ==================== PLAYER STATE ABILITIES ====================
 // Abilities that grant the player states or restrict game actions
@@ -1163,7 +1162,6 @@ planeswalker_effect: // General effects
                    | entity "deals"i NUMBER "damage divided as you choose among any number of target"i target_description "and/or"i target_description
 
                    // Ability granting effects
-                   | "Up to one target creature"i "you control"i? "gains"i ability_granted "this turn"i "."? effect
                    | "Up to one target creature"i "you control"i? "gains"i ability_granted duration? "."? effect?
 
                    // Emblem effects
@@ -1293,10 +1291,8 @@ damage_amount: NUMBER "damage"i
 // Damage target
 damage_target: target
              | "each"i entity
-             | "each opponent"i
              | "target"i entity
              | "any target"i
-             | "target player or planeswalker"i
              | "each player or planeswalker"i
              | "each of up to"i NUMBER "other targets"i
              | "each creature without"i ability_granted
@@ -1331,8 +1327,7 @@ reveal_top_rest: "Then put all cards revealed this way that weren't put onto the
                | "Put the rest into your graveyard"i
 
 // Reveal hand effect (discard after reveal)
-reveal_hand_effect: "Target opponent reveals their hand"i "." "You choose a"i card_type "card from it"i "." "That player discards that card"i
-                  | "Target opponent reveals their hand"i "." "You choose a"i card_type "card from it"i "." entity "discards that card"i
+reveal_hand_effect: "Target opponent reveals their hand"i "." "You choose a"i card_type "card from it"i "." entity "discards that card"i
 
 // Library reveal effect
 library_reveal_effect: "look at the top"i NUMBER "cards of your library and separate them into a face-down pile and a face-up pile"i "." "An opponent chooses one of those piles"i "." "Put that pile into your hand and the other into your graveyard"i
@@ -1393,9 +1388,7 @@ life_change_suffix: "unless that player"i /[^.]+/
 life_change_verb: "gain"i | "lose"i | "gains"i | "loses"i | "you gain"i | "you lose"i
 
 // Life amount
-life_amount: NUMBER "life"i
-           | "one life"i
-           | "2 life"i
+life_amount: counter_amount "life"i
            | "life equal to"i life_reference
 
 // Life reference
@@ -1894,8 +1887,6 @@ for_each_subject: // Entity or type you control (with optional qualifier)
                 | creature_type for_each_control
                 | basic_land_type for_each_control
                 | permanent_type for_each_control
-                | "creature you control with"i counter "on it"i
-                | "land you control"i
                 | "basic"i basic_land_type "you control"i
                 | "attacking"i creature_type "you control"i
                 | "attacking creature"i
