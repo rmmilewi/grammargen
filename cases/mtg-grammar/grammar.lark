@@ -425,7 +425,7 @@ player_state_ability: "You have"i ability_granted reminder_text?
                     | "You may cast"i target entity "from"i zone duration?
                     | "If an effect would"i /[^,]+/ "," "it"i /[^.]+/ "instead"i
                     // "If a spell or ability an opponent controls causes you to discard this card, put it onto the battlefield instead..."
-                    | "If"i /[^,]+/ "causes you to discard this card"i "," /[^.]+/
+                    | "If"i /(?:(?!causes)[^,])+/ "causes you to discard this card"i "," /[^.]+/
                     // Look/cast from top of library
                     | "You may look at the top card of your library any time"i
                     | "You may cast"i card_type "spells from the top of your library"i
@@ -498,6 +498,8 @@ entity_grant: "You"
             // Color creatures you control
             | "Other"i color "creatures you control"i
 
+            // Spell type as entity grant subject
+            | spell_type_desc "you control"i
             // Chosen type/color qualifiers
             | entity "of the chosen type"i "you control"i?
             | entity "of the chosen color"i
@@ -533,8 +535,7 @@ stat_modifier_suffix: ("as long as"i condition_clause)?
 reminder_suffix: "."? reminder_text?
 
 // Duration for effects
-duration: "until end of turn"i | "until your next turn"i | "this turn"i | "until the end of your next turn"i
-        | "for the rest of the game"i
+duration: "until end of turn"i | "until your next turn"i | "this turn"i | "until the end of your next turn"i | "for the rest of the game"i
 
 // Where clause (for X variables): "where X is this creature's power"
 where_clause: "," "where X is"i /[^.]+/
@@ -811,6 +812,9 @@ identity_description: // Type changing
                     // Copy effects
                     | "a copy of" entity
 
+                    // Type transformation with abilities and loss
+                    | "a"i color? permanent_type "with"i QUOTED_TEXT "and loses all other card types and abilities"i
+
                     // Creature transformation
                     | "a" NUMBER "/" NUMBER color? creature_type+
                     | "a" NUMBER "/" NUMBER color? creature_type+ "with" ability_granted
@@ -947,6 +951,8 @@ land_ability: // Basic mana abilities
 
             // Mana with restriction
             | "{T}" ":" "Add"i mana_production "." mana_spend_restriction
+            // Mana with triggered effect when spent
+            | "{T}" ":" "Add"i mana_production "." "When that mana is spent to cast"i mana_trigger_target "," (effect | compound_effect)
 
 // Mana production
 mana_production: // Single mana
@@ -967,6 +973,11 @@ mana_production: // Single mana
 // Mana spend restriction
 mana_spend_restriction: "Spend this mana only to cast"i spell_type_restriction
                       | "Spend this mana only to cast"i spell_type_restriction "or activate"i activation_restriction_target
+
+// Mana trigger target (for "When that mana is spent to cast...")
+mana_trigger_target: spell_type
+                   | "a"i color "instant or sorcery spell"i
+                   | "a"i color "creature spell"i
 
 // Spell type restriction for mana spending
 spell_type_restriction: "a"i creature_type "spell"i
@@ -1433,12 +1444,14 @@ exile_effect: "exile"i target exile_until_clause?
             | "exile all"i target_description
             | "exile"i target "from"i zone "with"i counter "on it"i
             | "exile"i "the top"i NUMBER "cards of your library"i
+            | "exile"i "the top card of your library"i
+            | "exile"i "the top card of"i entity "library"i
             | "exile"i "the top card of each player's library"i
             | "exile up to"i NUMBER "target"i target_description exile_from_clause? exile_until_clause?
             // Exile a zone (e.g., "exile target player's graveyard")
             | "exile"i "target player" APOSTROPHE "s"i zone_type
             // Exile each opponent's graveyard
-            | "exile each opponent" APOSTROPHE "s"i zone_type
+            | "exile each opponent"i APOSTROPHE "s"i zone_type
             // Exile target X that's COLOR or COLOR
             | "exile"i "target"i target_description "that" APOSTROPHE "s"i color "or"i color
             // Exile all other X
@@ -1560,6 +1573,7 @@ modify_ability_combined: "and gets"i stat_modifier
 // Return effect (consolidated: return + what + optional from + destination + optional state/timing)
 return_effect: // Return target/entity to a zone (with optional battlefield modifiers)
              | "return"i target "to"i zone return_under_control? return_with_clause? timing_clause?
+             | "return"i entity "to the battlefield"i return_under_control? return_with_clause? timing_clause?
              | "return up to"i NUMBER "other target"i target_description "you control"i "to"i zone
              // "Choose N target X. Return those ..."
              | "Choose"i NUMBER "target"i target_description "controlled by different players"i "." "Return those"i target_description "to their owners" APOSTROPHE "hands"i
@@ -1586,6 +1600,7 @@ return_card_ref: "target"i card_type
 
 // Under whose control the permanent returns
 return_under_control: "under"i entity "control"i
+                    | "under your control"i
                     | "under its owner's control"i
 
 // Return with clause (counter on return, with optional timing)
@@ -1666,6 +1681,7 @@ tap_effect: "tap"i target
           | "untap"i target
           | "untap up to"i NUMBER "target"i target_description
           | "untap up to"i NUMBER entity
+          | "untap up to"i NUMBER "lands"i
           | "tap up to"i NUMBER "target"i target_description
 
 // Transform effect
@@ -1687,7 +1703,7 @@ copy_effect: "copy"i "target"i "spell"i
            | "copy"i entity
            | "copy target"i spell_type
            // "copy it for each other X spell you've cast before it this turn"
-           | "copy"i entity "for each other"i /[^.]+/ "this turn"i
+           | "copy"i entity "for each other"i /(?:(?!this turn)[^.])+/ "this turn"i
 
 // Enters effect (consolidated: optional battlefield + optional control + optional state)
 enters_effect: "enters"i enters_battlefield_clause? enters_control_clause? enters_state_clause?
@@ -1728,6 +1744,10 @@ double_counter_effect: "double the number of"i counter_type "counters on"i entit
 
 // Distribute counters effect
 distribute_effect: "Distribute"i NUMBER counter_type "counters among"i /[^,.]+/ "target"i target_description
+                 | "Distribute"i NUMBER counter_type "counters among"i distribute_quantity "target"i target_description
+
+distribute_quantity: "one, two, or three"i
+                   | "any number of"i
 
 // Fight effect (creature fights another creature)
 fight_effect: target "fights"i target
@@ -1777,6 +1797,8 @@ conditional_effect: "if"i condition_clause "," effect
                   | "if"i condition_clause "," compound_effect
                   | "if you do"i "," effect
                   | "if you do"i "," compound_effect
+                  | "if a player does"i "," effect
+                  | "if a player does"i "," compound_effect
                   | "if you control ten or more Gates with different names"i "," "you win the game"i
                   // Kicker conditionals
                   | "If this spell was kicked"i "," "instead"i effect
@@ -1788,14 +1810,19 @@ conditional_effect: "if"i condition_clause "," effect
 // Compound effect (multiple effects joined by "and", "then", or periods)
 compound_effect: effect "and" effect
                | effect "," "then" effect
+               | effect "," effect
                | effect "." effect
                | effect "." "Then"i effect
                | effect "and" compound_effect
+               | effect "," compound_effect
                | effect "." compound_effect
                | effect "." "Then"i compound_effect
 
 // May effect
 may_effect: "you may"i may_action
+          | "any opponent may"i may_action
+          | entity "may"i may_search_action
+          | "Until the end of your next turn"i "," "you may"i may_action
 
 // May action (what can be done with "you may")
 may_action: "put"i entity "onto the battlefield"i
@@ -1807,10 +1834,12 @@ may_action: "put"i entity "onto the battlefield"i
           | "play"i entity
           | "play that card"i duration?
           | "pay"i mana_cost
+          | "pay"i NUMBER "life"i
           | "return"i entity "to your hand"i
           | "return"i "another"i card_type "card from"i zone "to"i zone
-          | "search your library for"i search_target
+          | "search your library for"i search_target ("," search_action)*
           | "sacrifice"i sacrifice_target
+          | "sacrifice"i sacrifice_object
           | "discard"i NUMBER? "card"i NUMBER?
           | "exile"i entity
           | "tap"i entity
@@ -1842,6 +1871,9 @@ may_action: "put"i entity "onto the battlefield"i
           | "have"i target ("get"i stat_modifier | "gain"i ability_granted) duration?
           // "you may have it become a X/X TYPE creature until end of turn"
           | "have"i entity "become a"i NUMBER "/" NUMBER color? creature_type? "creature"i duration?
+
+// May search action (for "entity may search their library for...")
+may_search_action: "search"i ("your"i | "their"i) "library for"i search_quantity? search_target ("," search_action)*
 
 // Gain life effect
 gain_life_effect: "gain"i NUMBER "life"i
@@ -2043,6 +2075,7 @@ identity_condition: entity "wasn't a"i creature_type
 
 // Combat conditions
 combat_condition: "it" APOSTROPHE "s attacking"i
+                | "it was attacking"i
                 | entity "is attacking"i
 
 // ==================== TARGETS ====================
@@ -2219,7 +2252,7 @@ entity: // Self-referential
       | "its controller"i
       | "its owner"i
       | "their controller"i
-      | "that land" APOSTROPHE "s controller"i
+      | "that land"i APOSTROPHE "s controller"i
 
       // You control (with optional count/qualifier)
       | "creatures you control"i
@@ -2262,6 +2295,7 @@ entity: // Self-referential
       | "that creature or planeswalker"i
       | "those creatures"i
       | "those"i target_description
+      | "each of those creatures"i
       | "they"i
       | "the exiled card"i
 
@@ -3025,7 +3059,7 @@ NEWLINE: /\n/
 BULLET: "•"
 
 // Apostrophe for possessive forms
-APOSTROPHE: "'"
+APOSTROPHE: "'" | "\u2019"
 
 // Quoted text (for token abilities)
 QUOTED_TEXT: "\"" /[^"]+/ "\""
