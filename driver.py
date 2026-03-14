@@ -65,19 +65,21 @@ _GRAMMAR_TEXT = None
 _START_RULE = None
 _PARSER_TYPE = None
 _TRANSFORMER_PATH = None
+_AMBIGUITY_MODE = None
 _COUNTER = None
 _TOTAL = None
 
-def initialize_worker(grammar_text, start_rule, parser_type, transformer_path, counter, total):
+def initialize_worker(grammar_text, start_rule, parser_type, transformer_path, ambiguity_mode, counter, total):
     """
     Initialize the worker process with the grammar and transformer.
     This function sets global variables that will be used by process_input.
     """
-    global _GRAMMAR_TEXT, _START_RULE, _PARSER_TYPE, _TRANSFORMER_PATH, _COUNTER, _TOTAL
+    global _GRAMMAR_TEXT, _START_RULE, _PARSER_TYPE, _TRANSFORMER_PATH, _AMBIGUITY_MODE, _COUNTER, _TOTAL
     _GRAMMAR_TEXT = grammar_text
     _START_RULE = start_rule
     _PARSER_TYPE = parser_type
     _TRANSFORMER_PATH = transformer_path
+    _AMBIGUITY_MODE = ambiguity_mode
     _COUNTER = counter
     _TOTAL = total
 
@@ -91,11 +93,11 @@ def process_input(args):
     Returns:
         A dictionary containing the results of parsing and transformation
     """
-    global _GRAMMAR_TEXT, _START_RULE, _PARSER_TYPE, _TRANSFORMER_PATH, _COUNTER, _TOTAL
-    
+    global _GRAMMAR_TEXT, _START_RULE, _PARSER_TYPE, _TRANSFORMER_PATH, _AMBIGUITY_MODE, _COUNTER, _TOTAL
+
     i, string_and_target = args
     input_str, target = string_and_target
-    
+
     result = {
         "index": i,
         "input": input_str,
@@ -104,12 +106,17 @@ def process_input(args):
         "parse_error": None,
         "transform_error": None,
         "tree_pretty": None,  # Store the pretty-printed tree as string
-        "output": None
+        "output": None,
+        "ambiguity_count": 0,
+        "ambiguities": None
     }
-    
+
     # Create parser in this process
     try:
-        lark_parser = Lark(_GRAMMAR_TEXT, start=_START_RULE, parser=_PARSER_TYPE, maybe_placeholders=False)
+        lark_kwargs = dict(start=_START_RULE, parser=_PARSER_TYPE, maybe_placeholders=False)
+        if _AMBIGUITY_MODE:
+            lark_kwargs["ambiguity"] = "explicit"
+        lark_parser = Lark(_GRAMMAR_TEXT, **lark_kwargs)
     except Exception as e:
         result["parse_error"] = f"Parser initialization error: {str(e)}"
         with _COUNTER.get_lock():
@@ -129,6 +136,23 @@ def process_input(args):
         tree = lark_parser.parse(input_str)
         result["parsed_successfully"] = True
         result["tree_pretty"] = tree.pretty()  # Store pretty-printed tree
+
+        # Detect ambiguities if in ambiguity mode
+        if _AMBIGUITY_MODE:
+            ambiguities = list(tree.find_data("_ambig"))
+            result["ambiguity_count"] = len(ambiguities)
+            if ambiguities:
+                ambig_details = []
+                for ambig_node in ambiguities:
+                    alternatives = list(ambig_node.children)
+                    alt_names = [str(child.data) if hasattr(child, 'data') else repr(child)
+                                 for child in alternatives]
+                    ambig_details.append({
+                        "num_alternatives": len(alternatives),
+                        "alternative_rules": alt_names,
+                        "pretty": ambig_node.pretty()[:500]
+                    })
+                result["ambiguities"] = ambig_details
     except Exception as e:
         result["parsed_successfully"] = False
         result["parse_error"] = str(e)
@@ -168,8 +192,10 @@ def main():
                         help="Number of processes to use for parallel parsing (default: number of CPU cores)")
     parser.add_argument("--batch_size", type=int, default=None,
                         help="Number of inputs to process in each batch (default: all at once)")
-    parser.add_argument("--verbose", action="store_true", 
+    parser.add_argument("--verbose", action="store_true",
                         help="Print detailed output for each parsed input")
+    parser.add_argument("--ambiguity", action="store_true",
+                        help="Check for ambiguous parses (uses Earley explicit ambiguity mode)")
 
     args = parser.parse_args()
 
@@ -182,7 +208,11 @@ def main():
 
     # Test parser construction in the main process to catch any immediate errors
     try:
-        lark_parser = Lark(grammar_text, start=args.start, parser=args.parser, maybe_placeholders=False)
+        lark_kwargs = dict(start=args.start, parser=args.parser, maybe_placeholders=False)
+        if args.ambiguity:
+            lark_kwargs["ambiguity"] = "explicit"
+            print("Ambiguity detection enabled (explicit mode)")
+        lark_parser = Lark(grammar_text, **lark_kwargs)
         print("Parser successfully constructed.\n")
     except Exception as e:
         print("An error occurred while building the parser...")
@@ -218,7 +248,7 @@ def main():
             with Pool(
                 processes=num_processes,
                 initializer=initialize_worker,
-                initargs=(grammar_text, args.start, args.parser, args.transformer, counter, total_val)
+                initargs=(grammar_text, args.start, args.parser, args.transformer, args.ambiguity, counter, total_val)
             ) as pool:
                 batch_results = pool.map(process_input, batch_args)
                 all_results.extend(batch_results)
@@ -248,13 +278,24 @@ def main():
             for result in all_results:
                 i = result["index"]
                 input_str = result["input"]
-                
+
                 print("-----------------------")
                 print(f"Parsing ({i+1}/{total_inputs})...")
                 print(f"\"\"\"{input_str}\"\"\"")
-                
+
                 if result["parsed_successfully"]:
                     print(result["tree_pretty"])  # Use the pretty-printed tree string
+
+                    # Show ambiguity details in verbose mode
+                    if args.ambiguity and result["ambiguity_count"] > 0:
+                        print(f"\n⚠ AMBIGUOUS: {result['ambiguity_count']} ambiguous node(s) found")
+                        for j, ambig in enumerate(result["ambiguities"]):
+                            print(f"\n  Ambiguity {j+1}: {ambig['num_alternatives']} alternatives")
+                            print(f"  Alternative rules: {ambig['alternative_rules']}")
+                            print(f"  Parse tree branches:")
+                            # Indent the pretty-printed subtree
+                            for line in ambig["pretty"].splitlines():
+                                print(f"    {line}")
                 else:
                     print("Error encountered during parsing...")
                     parsing_error_message = result["parse_error"]
@@ -266,7 +307,7 @@ def main():
                             print(parsing_error_message)
                     else:
                         print(parsing_error_message)
-                
+
                 if args.transformer is not None and result["parsed_successfully"]:
                     if result["transform_error"] is None:
                         output = result["output"]
@@ -278,12 +319,33 @@ def main():
                     else:
                         print("Error encountered during transformation of parse tree...")
                         print(result["transform_error"])
-                
+
                 print("-----------------------")
-        
+
+        # Ambiguity summary (non-verbose): list cards with ambiguities
+        if args.ambiguity and not args.verbose:
+            ambiguous_cards = [(r["index"], r["ambiguity_count"], r["ambiguities"])
+                               for r in all_results
+                               if r["parsed_successfully"] and r["ambiguity_count"] > 0]
+            if ambiguous_cards:
+                print(f"\nAmbiguous parses detected:")
+                for idx, count, details in ambiguous_cards:
+                    input_snippet = all_results[idx]["input"][:60].replace('\n', ' ')
+                    node_word = "node" if count == 1 else "nodes"
+                    print(f"  Card {idx+1}: {count} ambiguous {node_word} — \"{input_snippet}...\"")
+                    for j, ambig in enumerate(details):
+                        print(f"    Ambiguity {j+1}: {ambig['num_alternatives']} alternatives: {ambig['alternative_rules']}")
+
         print(f"Total number of strings correctly parsed: {count_parsed_successfully}/{total_inputs}")
         if args.transformer is not None:
             print(f"Total number of strings correctly transformed: {count_transformed_successfully}/{total_inputs}")
+
+        # Ambiguity totals
+        if args.ambiguity:
+            total_ambiguous = sum(1 for r in all_results if r["parsed_successfully"] and r["ambiguity_count"] > 0)
+            total_ambig_nodes = sum(r["ambiguity_count"] for r in all_results if r["parsed_successfully"])
+            print(f"Total cards with ambiguities: {total_ambiguous}/{count_parsed_successfully}")
+            print(f"Total ambiguous nodes across all cards: {total_ambig_nodes}")
     else:
         print("No input file provided. Parser construction only.")
 
