@@ -63,7 +63,7 @@ ability: // Core ability types
        | deck_rule_ability     // "A deck can have any number of cards named ~"
 
        // Simple abilities and text
-       | effect               // General effects
+       | effect_sequence      // General effects (possibly multi-sentence)
        | keyword_list         // List of keywords
        | reminder_text_only   // Just reminder text
        | empty_line           // Empty line
@@ -129,10 +129,10 @@ kicker_reminder: "(" "You may pay an additional"i (mana_cost | "{" NUMBER "}" | 
 
 // ==================== ACTIVATED ABILITIES ====================
 // Abilities with cost: effect format
-activated_ability: activation_cost ":" effect activation_restriction?
-                 | activation_cost ":" effect "." activation_restriction
-                 | activation_cost ":" "you may"i effect
-                 | activation_cost ":" "you may"i effect "." activation_restriction
+activated_ability: activation_cost ":" effect_sequence activation_restriction?
+                 | activation_cost ":" effect_sequence "." activation_restriction
+                 | activation_cost ":" "you may"i effect_sequence
+                 | activation_cost ":" "you may"i effect_sequence "." activation_restriction
                  // Conditional activated abilities: "{COST}: If ~ is TYPE, it becomes..."
                  | activation_cost ":" conditional_activated_effect
 
@@ -203,9 +203,9 @@ ability_restriction: "This ability triggers only once each turn"i
 triggered_ability: trigger_condition "," trigger_effect
 
 // Trigger effect types
-trigger_effect: optional_may? effect reminder_suffix?
-              | if_clause effect
-              | if_clause "," optional_may? effect
+trigger_effect: optional_may? effect_sequence reminder_suffix?
+              | if_clause effect_sequence
+              | if_clause "," optional_may? effect_sequence
               | "if it was kicked"i "," sacrifice_ability
               // "draw 1 card if it was attacking. Otherwise, ..."
               | effect "if"i condition_clause "." "Otherwise"i "," effect
@@ -718,7 +718,7 @@ modal_bullet: "•"i | BULLET | "—"
 
 // Modal effect types
 modal_effect: // General effects
-            | effect "."?
+            | effect_sequence "."?
 
             // Damage effects
             | entity "deals"i NUMBER "damage to target"i damage_target "."?
@@ -1769,12 +1769,14 @@ conditional_effect: "if"i condition_clause "," effect
                   // "If X is N or more, instead..."
                   | "If X is"i NUMBER "or more"i "," "instead"i effect
 
-// Compound effect (multiple effects joined by "and", "then", or periods)
+// Compound effect (multiple effects joined by "and", "then", or commas — within a single sentence)
 compound_effect: effect "and" effect
                | effect "," "then" effect
                | effect "," effect
-               | effect "." effect
-               | effect "." "Then"i effect
+
+// Effect sequence (multiple effects separated by periods — multi-sentence ability bodies)
+// Handles "Draw a card. Gain 3 life." and "Put a counter. Then draw a card."
+effect_sequence: effect ("." "Then"i? effect)*
 
 // May effect
 may_effect: "you may"i may_action
