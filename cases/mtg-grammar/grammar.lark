@@ -717,21 +717,7 @@ modal_option: modal_bullet modal_effect NEWLINE?
 modal_bullet: "•"i | BULLET | "—"
 
 // Modal effect types
-// General effects
 modal_effect: effect_sequence "."?
-
-            // Damage effects
-            | entity "deals"i NUMBER "damage to target"i damage_target "."?
-
-            // Ability granting effects
-            | entity_grant ("gains"i | "gain"i) ability_granted duration? "."?
-            | "Target"i entity "gains"i ability_granted duration? "."?
-            | "Target creature gains"i ability_granted duration? "."?
-            | "Permanents you control gain"i ability_granted duration? "."?
-
-            // Conditional modal effects
-            | create_effect "if"i condition_clause "."?
-            | effect "if"i condition_clause "."?
 
 // ==================== CHOOSE ONE ABILITY ====================
 // Choose one ability (triggered version)
@@ -1768,6 +1754,8 @@ conditional_effect: "if"i condition_clause "," effect
                   | "If this creature was kicked"i "," entity "enters"i enters_condition
                   // "If X is N or more, instead..."
                   | "If X is"i NUMBER "or more"i "," "instead"i effect
+                  // Postfix conditional: "effect if condition" (e.g., "Create a token if you control X")
+                  | effect "if"i condition_clause
 
 // Compound effect (multiple effects joined by "and", "then", or commas — within a single sentence)
 compound_effect: effect "and" effect
@@ -2233,15 +2221,6 @@ entity: "this"i permanent_type
       | "permanents your opponents control"i
       | NUMBER? permanent_type "an opponent controls"i
       | NUMBER? creature_type "an opponent controls"i
-
-      // Targeted entities
-      | "target"i permanent_type
-      | "target"i creature_type
-      | "target"i spell_type
-      | "target"i card_type
-      | "another target"i permanent_type
-      | "another target"i creature_type
-      | "another target"i entity "you control"i
 
       // Referential (back-references to previously mentioned things)
       | "that"i permanent_type
