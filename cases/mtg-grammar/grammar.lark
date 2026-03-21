@@ -15,8 +15,8 @@ card_text: ability_with_period (NEWLINE ability_with_period)*
 
 // ==================== ABILITY TYPES ====================
 // Different types of abilities - grouped by category
-ability: // Core ability types
-       | keyword_ability      // Single-word abilities like Flying, Vigilance
+// Core ability types
+ability: keyword_ability      // Single-word abilities like Flying, Vigilance
        | activated_ability    // Abilities with costs followed by effects
        | triggered_ability    // When/Whenever/At triggered abilities
        | static_ability       // Continuous effects
@@ -73,8 +73,8 @@ ability: // Core ability types
 keyword_ability: keyword reminder_text?
 
 // Keywords - grouped by category
-keyword: // Evergreen combat keywords
-       | "First strike"i
+// Evergreen combat keywords
+keyword: "First strike"i
        | "Double strike"i
        | "Vigilance"i
        | "Menace"i
@@ -418,8 +418,8 @@ player_state_ability: "You have"i ability_granted reminder_text?
 
 // ==================== STATIC ABILITIES ====================
 // Static abilities - consolidated by pattern
-static_ability: // Granting abilities: entity_grant verb ability [duration] [reminder]
-              | entity_grant ("have"i | "has"i | "gains"i | "gain"i) ability_granted duration? reminder_suffix?
+// Granting abilities: entity_grant verb ability [duration] [reminder]
+static_ability: entity_grant ("have"i | "has"i | "gains"i | "gain"i) ability_granted duration? reminder_suffix?
 
               // Stat modifications: entity_grant verb stat [suffix|for_each]
               | entity_grant ("get"i | "gets"i) stat_modifier (stat_modifier_suffix | for_each_clause)?
@@ -651,8 +651,8 @@ if_would_ability: "If"i would_condition "," replacement_effect
                 | "If an effect would"i /[^,]+/ "," /[^.]+/
 
 // Would conditions
-would_condition: // Graveyard/death related
-               | "~"i "would be put into a graveyard from anywhere"i
+// Graveyard/death related
+would_condition: "~"i "would be put into a graveyard from anywhere"i
                | entity "would" "die"i
                | entity "would" "be destroyed"i
 
@@ -677,8 +677,8 @@ would_condition: // Graveyard/death related
                | entity "would" action
 
 // Replacement effect
-replacement_effect: // Library replacement
-                  | "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
+// Library replacement
+replacement_effect: "reveal"i "~"i "and"i "shuffle"i "it"i "into"i "its owner's library"i "instead"i "."?
 
                   // Exile replacement
                   | "exile"i entity "instead"i "."?
@@ -717,21 +717,7 @@ modal_option: modal_bullet modal_effect NEWLINE?
 modal_bullet: "•"i | BULLET | "—"
 
 // Modal effect types
-modal_effect: // General effects
-            | effect_sequence "."?
-
-            // Damage effects
-            | entity "deals"i NUMBER "damage to target"i damage_target "."?
-
-            // Ability granting effects
-            | entity_grant ("gains"i | "gain"i) ability_granted duration? "."?
-            | "Target"i entity "gains"i ability_granted duration? "."?
-            | "Target creature gains"i ability_granted duration? "."?
-            | "Permanents you control gain"i ability_granted duration? "."?
-
-            // Conditional modal effects
-            | create_effect "if"i condition_clause "."?
-            | effect "if"i condition_clause "."?
+modal_effect: effect_sequence "."?
 
 // ==================== CHOOSE ONE ABILITY ====================
 // Choose one ability (triggered version)
@@ -753,8 +739,8 @@ choice_separator: "—" | "--" | "-" | ":"
 possessive_ability: entity APOSTROPHE "s" possessive_property
 
 // Possessive properties - grouped by type
-possessive_property: // Power and toughness together
-                   | "power and toughness are each equal to" stat_reference
+// Power and toughness together
+possessive_property: "power and toughness are each equal to" stat_reference
 
                    // Power only
                    | "power is equal to" stat_reference
@@ -781,8 +767,8 @@ identity_ability: entity identity_verb identity_description
 identity_verb: "is" | "becomes"
 
 // Identity descriptions - grouped by type
-identity_description: // Type changing
-                    | "the chosen type in addition to its other types"
+// Type changing
+identity_description: "the chosen type in addition to its other types"
                     | "a" permanent_type "in addition to its other types"
                     | "a"i creature_type "in addition to its other types"i
                     | "still a"i permanent_type
@@ -912,8 +898,8 @@ stat_condition: stat_condition_type comparison_operator NUMBER
 stat_condition_type: "power"i | "toughness"i | "mana value"i
 
 // Comparison operators
-comparison_operator: // Text operators
-                   | "greater than"i
+// Text operators
+comparison_operator: "greater than"i
                    | "less than"i
                    | "equal to"i
                    | "greater than or equal to"i
@@ -924,8 +910,8 @@ comparison_operator: // Text operators
 
 // ===== LAND ABILITIES =====
 // Land abilities
-land_ability: // Basic mana abilities
-            | "{T}" ":" "Add"i mana_production
+// Basic mana abilities
+land_ability: "{T}" ":" "Add"i mana_production
 
             // Activated abilities
             | "{" NUMBER "}" "," "{T}" land_activation_suffix? ":" effect
@@ -936,8 +922,8 @@ land_ability: // Basic mana abilities
             | "{T}" ":" "Add"i mana_production "." "When that mana is spent to cast"i mana_trigger_target "," effect
 
 // Mana production
-mana_production: // Single mana
-               | mana_symbol ("or" mana_symbol)*
+// Single mana
+mana_production: mana_symbol ("or" mana_symbol)*
                | "{" color_symbol "}" ("or"i "{" color_symbol "}")?
                | "{" color_symbol "}" ("{" color_symbol "}")*
                | "{C}{C}" "."?
@@ -1004,8 +990,8 @@ threshold_condition: "as long as there are seven or more cards in your graveyard
                    | "if there are seven or more cards in your graveyard"i
 
 // Threshold effect - grouped by type
-threshold_effect: // Static effects
-                | entity "gains"i ability_granted threshold_condition
+// Static effects
+threshold_effect: entity "gains"i ability_granted threshold_condition
                 | "This creature gets"i stat_modifier threshold_condition
                 // Compound stat + ability: "gets +1/+1 and gains deathtouch as long as..."
                 | "This creature gets"i stat_modifier "and gains"i ability_granted threshold_condition
@@ -1087,8 +1073,8 @@ raid_ability: "Raid"i "—"i raid_effect
 raid_condition: "if you attacked this turn"i
 
 // Raid effect - grouped by type
-raid_effect: // Enters battlefield effects
-           | "When"i entity "enters"i "," raid_condition "," effect
+// Enters battlefield effects
+raid_effect: "When"i entity "enters"i "," raid_condition "," effect
            | "When this creature enters"i "," raid_condition "," entity "deals"i NUMBER "damage to any target"i
            | "This creature enters"i counter "on it if you attacked this turn"i
 
@@ -1103,8 +1089,8 @@ morbid_ability: "Morbid"i "—"i morbid_effect
 morbid_condition: "if a creature died this turn"i
 
 // Morbid effect - grouped by type
-morbid_effect: // Enters battlefield effects
-             | "When this creature enters"i "," morbid_target_effect
+// Enters battlefield effects
+morbid_effect: "When this creature enters"i "," morbid_target_effect
 
              // End step effects
              | "At the beginning of each end step"i "," morbid_condition "," effect
@@ -1133,8 +1119,8 @@ loyalty_value: "+" NUMBER  // Positive loyalty
              | "0"         // Zero loyalty
 
 // Planeswalker effect types
-planeswalker_effect: // General effects
-                   | effect
+// General effects
+planeswalker_effect: effect
                    // Complex choice effects
                    | entity "chooses"i /[^.]+/
 
@@ -1162,8 +1148,8 @@ exile_top_effect: "Exile the top"i NUMBER "cards of your library"i "." "Choose o
 
 // ==================== EFFECTS ====================
 // Effects - main categories
-effect: // Creation effects
-      | create_effect
+// Creation effects
+effect: create_effect
 
       // Card manipulation effects
       | draw_effect
@@ -1228,8 +1214,8 @@ effect: // Creation effects
 
 // ==================== SIMPLE EFFECTS ====================
 // Simple effect patterns (damage moved to damage_effect)
-simple_effect: // Information patterns
-             | reveal_effect
+// Information patterns
+simple_effect: reveal_effect
              | reveal_hand_effect
 
              // Control patterns
@@ -1512,8 +1498,8 @@ under_your_control: "under your control"i
 tapped: "tapped"i
 
 // Modify creature effect (consolidated: subject + verb pattern + optional combined + duration/reminder/where)
-modify_creature_effect: // Subject gets stat [and gains/has ability]
-                      | modify_subject_stat stat_modifier modify_stat_combined? duration? reminder_suffix? where_clause?
+// Subject gets stat [and gains/has ability]
+modify_creature_effect: modify_subject_stat stat_modifier modify_stat_combined? duration? reminder_suffix? where_clause?
                       // Subject gains ability [and gets stat]
                       | modify_subject_ability ability_granted modify_ability_combined? duration? reminder_suffix? where_clause?
                       // Equipment has ability
@@ -1541,8 +1527,8 @@ modify_stat_combined: "and"i ("gains"i | "gain"i | "has"i | "have"i) ability_gra
 modify_ability_combined: "and gets"i stat_modifier
 
 // Return effect (consolidated: return + what + optional from + destination + optional state/timing)
-return_effect: // Return target/entity to a zone (with optional battlefield modifiers)
-             | "return"i target "to"i zone return_under_control? return_with_clause? timing_clause?
+// Return target/entity to a zone (with optional battlefield modifiers)
+return_effect: "return"i target "to"i zone return_under_control? return_with_clause? timing_clause?
              | "return"i entity "to the battlefield"i return_under_control? return_with_clause? timing_clause?
              | "return up to"i NUMBER "other target"i target_description "you control"i "to"i zone
              // "Choose N target X. Return those ..."
@@ -1768,11 +1754,15 @@ conditional_effect: "if"i condition_clause "," effect
                   | "If this creature was kicked"i "," entity "enters"i enters_condition
                   // "If X is N or more, instead..."
                   | "If X is"i NUMBER "or more"i "," "instead"i effect
+                  // Postfix conditional: "effect if condition" (e.g., "Create a token if you control X")
+                  | effect "if"i condition_clause
 
 // Compound effect (multiple effects joined by "and", "then", or commas — within a single sentence)
 compound_effect: effect "and" effect
                | effect "," "then" effect
                | effect "," effect
+               | effect "," effect "," effect "," "and" effect
+               | effect "," effect "," "and" effect
 
 // Effect sequence (multiple effects separated by periods — multi-sentence ability bodies)
 // Handles "Draw a card. Gain 3 life." and "Put a counter. Then draw a card."
@@ -1868,8 +1858,8 @@ for_each_clause: "for each"i for_each_subject
                | "for each of"i for_each_subject
 
 // What is being counted in "for each X"
-for_each_subject: // Entity or type you control (with optional qualifier)
-                | entity
+// Entity or type you control (with optional qualifier)
+for_each_subject: entity
                 | entity "in"i zone
                 | entity for_each_control
                 | creature_type for_each_control
@@ -2091,8 +2081,8 @@ target_description: creature_type object_condition?
 
 // Conditions for targets (unified)
 // Replaces the former creature_condition, permanent_condition, spell_condition, card_condition
-object_condition: // Control/ownership
-                | "you control"i
+// Control/ownership
+object_condition: "you control"i
                 | "you don't control"i
                 | "you own"i
                 | "an opponent controls"i
@@ -2111,8 +2101,8 @@ object_condition: // Control/ownership
 
 // ==================== COSTS ====================
 // Costs - simple standalone cost patterns (used by activation_cost as base)
-cost: // Tap
-    | "{T}"
+// Tap
+cost: "{T}"
     // Mana
     | mana_cost
     | mana_only_cost
@@ -2183,8 +2173,8 @@ search_qualifier: "with mana value"i comparison_operator? NUMBER ("or greater"i 
 
 // ==================== ENTITIES ====================
 // Entities - organized by semantic category
-entity: // Self-referential
-      | "this"i permanent_type
+// Self-referential
+entity: "this"i permanent_type
       | "this spell"i
       | "this card"i
       | "it"i
@@ -2231,15 +2221,6 @@ entity: // Self-referential
       | "permanents your opponents control"i
       | NUMBER? permanent_type "an opponent controls"i
       | NUMBER? creature_type "an opponent controls"i
-
-      // Targeted entities
-      | "target"i permanent_type
-      | "target"i creature_type
-      | "target"i spell_type
-      | "target"i card_type
-      | "another target"i permanent_type
-      | "another target"i creature_type
-      | "another target"i entity "you control"i
 
       // Referential (back-references to previously mentioned things)
       | "that"i permanent_type
